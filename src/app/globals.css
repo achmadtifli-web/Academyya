@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+@theme {
+  /* Core Brand Blues */
+  --color-primary: #1D8FE1;
+  --color-primary-hover: #1674B8;
+  --color-primary-dark: #1E3A8A;
+  --color-primary-light: #E0F2FE;
+
+  /* Signature Accents from DESIGN.md */
+  --color-coral: #FF6B35;
+  --color-coral-text: #C2410C;
+  --color-coral-ink: #9A3412;
+  --color-coral-light: #FFEDD5;
+  --color-accent: #FACC15;
+  --color-accent-dark: #B45309;
+  --color-accent-light: #FEF9C3;
+  --color-purple: #7C3AED;
+  --color-purple-light: #EDE9FE;
+
+  /* Semantic Status Colors */
+  --color-secondary: #0F766E;
+  --color-secondary-light: #CCFBF1;
+  --color-success: #15803D;
+  --color-success-light: #DCFCE7;
+  --color-danger: #DC2626;
+  --color-danger-ink: #991B1B;
+  --color-danger-light: #FEE2E2;
+
+  /* Neutrals & Surfaces */
+  --color-page: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-line: #E2E8F0;
+  --color-line-strong: #CBD5E1;
+  --color-ink: #0F172A;
+  --color-muted: #475569;
+
+  /* Typography */
+  --font-heading: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-body);
+    color: var(--color-ink);
+    background-color: var(--color-page);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-heading);
+    color: var(--color-ink);
+  }
+
+  a[href],
+  button:not(:disabled),
+  summary,
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  label[for],
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  [role="switch"] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled,
+  input:disabled,
+  textarea:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary-hover);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-sheet {
+    box-shadow: none !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
