@@ -46,6 +46,11 @@ export default async function LearnMaterialPage({ params }) {
     notFound();
   }
 
+  const manageBackHref =
+    user.role === 'admin'
+      ? `/admin/courses/${workspace.course.id}/materials`
+      : `/teacher/courses/${workspace.course.id}/materials`;
+
   return (
     <LearningWorkspaceClient
       key={workspace.activeMaterial.id}
@@ -55,6 +60,7 @@ export default async function LearnMaterialPage({ params }) {
       initialProgress={workspace.progress}
       initialCertificateCode={workspace.enrollment?.certificate_code || null}
       isPreviewMode={workspace.isPreviewMode}
+      manageBackHref={manageBackHref}
     />
   );
 }

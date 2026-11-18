@@ -29,14 +29,24 @@ export default async function LearnCourseIndexPage({ params }) {
     redirect(`/learn/${courseSlug}/${workspace.activeMaterial.id}`);
   }
 
+  const canManage = user.role === 'admin' || user.role === 'teacher';
+  const manageMaterialsHref =
+    user.role === 'admin'
+      ? `/admin/courses/${workspace.course.id}/materials`
+      : `/teacher/courses/${workspace.course.id}/materials`;
+
   return (
     <AppFrame user={user}>
       <main className="flex-1 flex items-center justify-center p-6">
         <EmptyState
           title="Materi Belum Tersedia"
-          description="Course ini belum memiliki materi pembelajaran. Tambahkan materi dari Teacher Panel terlebih dahulu."
-          actionLabel="Kembali ke Detail Course"
-          actionHref={`/courses/${courseSlug}`}
+          description={
+            canManage
+              ? 'Course ini belum memiliki materi pembelajaran. Tambahkan materi terlebih dahulu sebelum dipublikasikan.'
+              : 'Pengajar belum menambahkan materi pada course ini.'
+          }
+          actionLabel={canManage ? 'Kelola Materi Course' : 'Kembali ke Detail Course'}
+          actionHref={canManage ? manageMaterialsHref : `/courses/${courseSlug}`}
         />
       </main>
     </AppFrame>

@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   MessageSquare,
   PlayCircle,
-  Search,
   UserCheck,
 } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
@@ -114,57 +113,33 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Quick Search & Category Explorer */}
-      <section id="kategori" className="bg-white py-14 border-y border-line scroll-mt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          <form
-            action="/courses"
-            method="GET"
-            className="max-w-2xl mx-auto flex flex-col sm:flex-row items-stretch sm:items-center bg-page border-2 border-line focus-within:border-primary-hover rounded-3xl sm:rounded-full p-2 sm:pl-6 gap-2 shadow-xs"
-          >
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <Search className="w-5 h-5 text-muted shrink-0" aria-hidden="true" />
-              <label htmlFor="home-search-input" className="sr-only">
-                Cari course di katalog
-              </label>
-              <input
-                id="home-search-input"
-                name="q"
-                type="search"
-                placeholder="Ingin belajar keterampilan apa hari ini?"
-                className="w-full min-h-11 bg-transparent text-base text-ink placeholder:text-muted focus:outline-none"
-              />
-            </div>
-            <button
-              type="submit"
-              className="min-h-11 px-7 rounded-full bg-primary-hover text-white font-semibold text-base hover:bg-primary-dark transition shrink-0"
-            >
-              Cari Course
-            </button>
-          </form>
-
-          <div className="space-y-4 text-center">
-            <h2 className="font-heading text-xl font-semibold text-ink">
-              Jelajahi Kategori Pembelajaran
-            </h2>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              {categories.map((cat) => (
-                <Link
-                  key={cat.id}
-                  href={`/courses?category=${cat.slug}`}
-                  className="min-h-11 px-5 py-2.5 rounded-full border border-line bg-white hover:border-primary-hover hover:bg-primary-light/50 font-medium text-sm sm:text-base text-ink inline-flex items-center gap-2 transition"
-                >
-                  <CategoryIcon name={cat.icon} className="w-4 h-4 text-primary-hover" />
-                  <span>{cat.name}</span>
-                  <span className="text-xs font-semibold text-muted">
-                    ({cat.published_courses_count})
-                  </span>
-                </Link>
-              ))}
+      {/* Category Explorer */}
+      {categories.length > 0 && (
+        <section id="kategori" className="bg-white py-10 sm:py-14 border-y border-line scroll-mt-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="space-y-4 text-center">
+              <h2 className="font-heading text-xl font-semibold text-ink">
+                Jelajahi Kategori Pembelajaran
+              </h2>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                {categories.map((cat) => (
+                  <Link
+                    key={cat.id}
+                    href={`/courses?category=${cat.slug}`}
+                    className="min-h-11 px-5 py-2.5 rounded-full border border-line bg-white hover:border-primary-hover hover:bg-primary-light/50 font-medium text-sm sm:text-base text-ink inline-flex items-center gap-2 transition"
+                  >
+                    <CategoryIcon name={cat.icon} className="w-4 h-4 text-primary-hover" />
+                    <span>{cat.name}</span>
+                    <span className="text-xs font-semibold text-muted">
+                      ({cat.published_courses_count})
+                    </span>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Popular Courses */}
       <section className="bg-page py-16">
