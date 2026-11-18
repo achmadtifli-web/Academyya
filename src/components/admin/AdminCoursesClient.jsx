@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, ExternalLink, EyeOff, Globe, Search, Trash2 } from 'lucide-react';
+import { BookOpen, ExternalLink, EyeOff, Globe, Layers, Search, Trash2 } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -158,7 +158,15 @@ export function AdminCoursesClient({ initialCourses = [] }) {
                       {course.total_students}
                     </td>
                     <td className="py-4 px-5">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <Button
+                          href={`/admin/courses/${course.id}/materials`}
+                          variant="primary"
+                          size="sm"
+                        >
+                          <Layers className="w-4 h-4" aria-hidden="true" />
+                          <span>Kelola Materi</span>
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
@@ -207,6 +215,15 @@ export function AdminCoursesClient({ initialCourses = [] }) {
                   {course.teacher_name} · {course.total_materials} materi · {course.total_students} siswa
                 </p>
                 <div className="grid grid-cols-2 gap-2 pt-1">
+                  <Button
+                    href={`/admin/courses/${course.id}/materials`}
+                    variant="primary"
+                    size="sm"
+                    className="col-span-2"
+                  >
+                    <Layers className="w-4 h-4" aria-hidden="true" />
+                    <span>Kelola Materi</span>
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
