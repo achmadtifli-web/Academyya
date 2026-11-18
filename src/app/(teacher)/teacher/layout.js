@@ -18,7 +18,10 @@ export default async function TeacherLayout({ children }) {
   if (!user) {
     redirect('/login?callbackUrl=/teacher');
   }
-  if (user.role !== 'teacher' && user.role !== 'admin') {
+  if (user.role === 'admin') {
+    redirect('/admin');
+  }
+  if (user.role !== 'teacher') {
     redirect('/403');
   }
 
