@@ -9,6 +9,7 @@ import {
   BookOpen,
   CheckCheck,
   ChevronDown,
+  Home,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -22,10 +23,8 @@ import { FontSizeControl } from '@/components/ui/FontSizeControl';
 import { useToast } from '@/components/ui/ToastContext';
 
 const PUBLIC_NAV_LINKS = [
-  { href: '/', label: 'Beranda' },
-  { href: '/courses', label: 'Katalog' },
-  { href: '/#kategori', label: 'Kategori' },
-  { href: '/#cara-kerja', label: 'Cara Kerja' },
+  { href: '/', label: 'Beranda', Icon: Home },
+  { href: '/courses', label: 'Katalog', Icon: BookOpen },
 ];
 
 function getRoleWorkspace(role) {
@@ -172,7 +171,7 @@ export function Navbar({ initialUser = null }) {
           </span>
         </Link>
 
-        <nav aria-label="Navigasi utama" className="hidden lg:flex items-center gap-6">
+        <nav aria-label="Navigasi utama" className="hidden md:flex items-center gap-4 lg:gap-6">
           {PUBLIC_NAV_LINKS.map((item) => {
             const isActive =
               item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
@@ -381,17 +380,26 @@ export function Navbar({ initialUser = null }) {
           </div>
 
           <nav aria-label="Navigasi seluler" className="space-y-1">
-            {PUBLIC_NAV_LINKS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpenPanel(null)}
-                className="min-h-12 px-4 rounded-2xl flex items-center gap-3 text-base font-medium text-ink hover:bg-page"
-              >
-                <BookOpen className="w-4 h-4 text-primary-hover" aria-hidden="true" />
-                <span>{item.label}</span>
-              </Link>
-            ))}
+            {PUBLIC_NAV_LINKS.map((item) => {
+              const Icon = item.Icon;
+              const isActive =
+                item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpenPanel(null)}
+                  className={`min-h-12 px-4 rounded-2xl flex items-center gap-3 text-base transition ${
+                    isActive
+                      ? 'bg-primary-light/70 text-primary-dark font-semibold'
+                      : 'text-ink font-medium hover:bg-page'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 text-primary-hover" aria-hidden="true" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
           </nav>
 
           {!user ? (
