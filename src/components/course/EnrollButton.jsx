@@ -42,10 +42,15 @@ export function EnrollButton({ course, currentUser, enrollment }) {
     (currentUser.role === 'teacher' && Number(course.teacher_id) === Number(currentUser.id));
 
   if (isOwnerOrAdmin) {
+    const manageHref =
+      currentUser.role === 'admin'
+        ? `/admin/courses/${course.id}/materials`
+        : `/teacher/courses/${course.id}/materials`;
+
     return (
       <div className="space-y-3">
         <Button
-          href={`/teacher/courses/${course.id}/materials`}
+          href={manageHref}
           variant="outline"
           size="lg"
           className="w-full"
