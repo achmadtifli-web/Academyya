@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Users } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 import { StatusBadge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 
@@ -61,8 +62,13 @@ export function TeacherStudentsClient({ initialStudents = [], courses = [] }) {
                 {filtered.map((row) => (
                   <tr key={row.enrollment_id} className="hover:bg-page/50">
                     <td className="py-4 px-5">
-                      <p className="font-semibold text-ink">{row.student_name}</p>
-                      <p className="text-sm text-muted">{row.student_email}</p>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Avatar src={row.student_avatar} name={row.student_name} size="md" />
+                        <div className="min-w-0">
+                          <p className="font-semibold text-ink truncate">{row.student_name}</p>
+                          <p className="text-sm text-muted truncate">{row.student_email}</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="py-4 px-5 text-sm font-medium text-ink">
                       {row.course_title}
@@ -98,9 +104,12 @@ export function TeacherStudentsClient({ initialStudents = [], courses = [] }) {
                 className="rounded-3xl bg-white border border-line p-5 space-y-3"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-ink">{row.student_name}</p>
-                    <p className="text-sm text-muted truncate">{row.student_email}</p>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Avatar src={row.student_avatar} name={row.student_name} size="md" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-ink truncate">{row.student_name}</p>
+                      <p className="text-sm text-muted truncate">{row.student_email}</p>
+                    </div>
                   </div>
                   <StatusBadge status={row.enrollment_status} />
                 </div>

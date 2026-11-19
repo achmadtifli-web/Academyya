@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Award, BookOpen, Clock, PlayCircle, XCircle } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -172,11 +173,14 @@ export function StudentDashboardClient({
                   <StatusBadge status={item.enrollment_status} />
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <h3 className="font-heading text-lg font-semibold text-ink line-clamp-2">
                     {item.title}
                   </h3>
-                  <p className="mt-1 text-sm text-muted">Pengajar: {item.teacher_name}</p>
+                  <div className="flex items-center gap-2 text-sm text-muted">
+                    <Avatar src={item.teacher_avatar} name={item.teacher_name} size="xs" />
+                    <span className="truncate">{item.teacher_name}</span>
+                  </div>
                 </div>
 
                 <div className="mt-auto space-y-2 pt-2">

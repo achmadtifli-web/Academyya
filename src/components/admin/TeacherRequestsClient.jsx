@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Calendar, CheckCircle2, ExternalLink, UserCheck, XCircle } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -118,24 +119,27 @@ export function TeacherRequestsClient({ initialRequests = [] }) {
               className="rounded-3xl border border-line bg-white p-6 space-y-4"
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="space-y-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <h2 className="font-heading text-xl font-semibold text-ink">
-                      {req.applicant_name}
-                    </h2>
-                    <StatusBadge status={req.status} />
+                <div className="flex items-start gap-3.5 min-w-0">
+                  <Avatar src={req.applicant_avatar} name={req.applicant_name} size="lg" />
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <h2 className="font-heading text-xl font-semibold text-ink">
+                        {req.applicant_name}
+                      </h2>
+                      <StatusBadge status={req.status} />
+                    </div>
+                    <p className="text-base text-muted">{req.applicant_email}</p>
+                    <p className="text-sm text-muted inline-flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4" aria-hidden="true" />
+                      <span>
+                        Diajukan {new Date(req.created_at).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    </p>
                   </div>
-                  <p className="text-base text-muted">{req.applicant_email}</p>
-                  <p className="text-sm text-muted inline-flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4" aria-hidden="true" />
-                    <span>
-                      Diajukan {new Date(req.created_at).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                    </span>
-                  </p>
                 </div>
 
                 <span className="inline-flex items-center rounded-full bg-primary-light text-primary-dark px-4 py-1.5 text-sm font-semibold">

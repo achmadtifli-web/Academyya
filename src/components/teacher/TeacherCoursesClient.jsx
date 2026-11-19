@@ -84,72 +84,106 @@ export function TeacherCoursesClient({ initialCourses = [] }) {
         />
       ) : (
         <div className="space-y-4">
-          {courses.map((course) => (
-            <article
-              key={course.id}
-              className="rounded-3xl border border-line bg-white p-5 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-5"
-            >
-              <div className="space-y-2 min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <StatusBadge status={course.status} />
-                  <StatusBadge status={course.level} />
-                  <span className="text-sm font-medium text-muted">{course.category_name}</span>
-                </div>
-                <h2 className="font-heading text-xl font-semibold text-ink">
-                  <Link
-                    href={`/teacher/courses/${course.id}/materials`}
-                    className="min-h-11 inline-flex items-center hover:text-primary-hover"
-                  >
-                    {course.title}
-                  </Link>
-                </h2>
-                <p className="text-sm text-muted">
-                  {course.total_materials} Materi · {course.total_duration} menit ·{' '}
-                  {course.total_students} Siswa terdaftar
-                </p>
-              </div>
+          {courses.map((course) => {
+            const isPublished = course.status === 'published';
+            const isBusy = busyId === course.id;
 
-              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                <Button
-                  href={`/teacher/courses/${course.id}/materials`}
-                  variant="primary"
-                  size="sm"
-                >
-                  <Layers className="w-4 h-4" aria-hidden="true" />
-                  <span>Kelola Materi</span>
-                </Button>
-                <Button
-                  href={`/teacher/courses/${course.id}/edit`}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Pencil className="w-4 h-4" aria-hidden="true" />
-                  <span>Edit Info</span>
-                </Button>
-                <Button href={`/learn/${course.slug}`} variant="ghost" size="sm">
-                  <Eye className="w-4 h-4" aria-hidden="true" />
-                  <span>Pratinjau</span>
-                </Button>
-                <Button
-                  variant={course.status === 'published' ? 'outline' : 'success'}
-                  size="sm"
-                  disabled={busyId === course.id}
-                  onClick={() => handleTogglePublish(course)}
-                >
-                  {course.status === 'published' ? 'Ubah ke Draft' : 'Publikasikan'}
-                </Button>
-                <Button
-                  variant="dangerOutline"
-                  size="sm"
-                  disabled={busyId === course.id}
-                  onClick={() => setDeleteTarget(course)}
-                >
-                  <Trash2 className="w-4 h-4" aria-hidden="true" />
-                  <span>Hapus</span>
-                </Button>
-              </div>
-            </article>
-          ))}
+            return (
+              <article
+                key={course.id}
+                className="rounded-3xl border border-line bg-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5"
+              >
+                <div className="space-y-2 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusBadge status={course.status} />
+                    <StatusBadge status={course.level} />
+                    <span className="text-sm font-medium text-muted">{course.category_name}</span>
+                  </div>
+                  <h2 className="font-heading text-xl font-semibold text-ink">
+                    <Link
+                      href={`/teacher/courses/${course.id}/materials`}
+                      className="min-h-11 inline-flex items-center hover:text-primary-hover"
+                    >
+                      {course.title}
+                    </Link>
+                  </h2>
+                  <p className="text-sm text-muted">
+                    {course.total_materials} Materi · {course.total_duration} menit ·{' '}
+                    {course.total_students} Siswa terdaftar
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-end gap-4 shrink-0">
+                  {/* Publish / Draft Switch Toggle */}
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isPublished}
+                    aria-label={
+                      isPublished
+                        ? `Ubah status ${course.title} ke Draft`
+                        : `Publikasikan ${course.title}`
+                    }
+                    disabled={isBusy}
+                    onClick={() => handleTogglePublish(course)}
+                    className="min-h-11 px-3 py-1.5 rounded-full border border-line bg-page inline-flex items-center gap-2.5 text-sm font-semibold text-ink hover:border-primary/50 disabled:opacity-50 transition"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`w-11 h-6 rounded-full p-0.5 flex items-center transition-colors ${
+                        isPublished ? 'bg-success' : 'bg-slate-500'
+                      }`}
+                    >
+                      <span
+                        className={`w-5 h-5 rounded-full bg-white shadow-xs transition-transform ${
+                          isPublished ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </span>
+                    <span>{isPublished ? 'Published' : 'Draft'}</span>
+                  </button>
+
+                  {/* 2x2 Icon-Only Action Grid */}
+                  <div className="grid grid-cols-2 gap-2 shrink-0">
+                    <Link
+                      href={`/teacher/courses/${course.id}/materials`}
+                      aria-label={`Kelola materi ${course.title}`}
+                      title="Kelola Materi"
+                      className="w-11 h-11 rounded-2xl bg-primary-hover text-white hover:bg-primary-dark active:scale-[0.98] inline-flex items-center justify-center shadow-xs transition"
+                    >
+                      <Layers className="w-5 h-5" aria-hidden="true" />
+                    </Link>
+                    <Link
+                      href={`/teacher/courses/${course.id}/edit`}
+                      aria-label={`Edit info ${course.title}`}
+                      title="Edit Info"
+                      className="w-11 h-11 rounded-2xl bg-white text-primary-dark border-2 border-primary-hover hover:bg-primary-light/60 inline-flex items-center justify-center transition"
+                    >
+                      <Pencil className="w-5 h-5" aria-hidden="true" />
+                    </Link>
+                    <Link
+                      href={`/learn/${course.slug}`}
+                      aria-label={`Pratinjau ${course.title}`}
+                      title="Pratinjau"
+                      className="w-11 h-11 rounded-2xl bg-white text-ink border border-slate-500/60 hover:bg-page hover:border-primary-hover inline-flex items-center justify-center transition"
+                    >
+                      <Eye className="w-5 h-5" aria-hidden="true" />
+                    </Link>
+                    <button
+                      type="button"
+                      aria-label={`Hapus ${course.title}`}
+                      title="Hapus Course"
+                      disabled={isBusy}
+                      onClick={() => setDeleteTarget(course)}
+                      className="w-11 h-11 rounded-2xl bg-white text-danger-ink border-2 border-danger hover:bg-danger-light disabled:opacity-50 inline-flex items-center justify-center transition"
+                    >
+                      <Trash2 className="w-5 h-5" aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
 

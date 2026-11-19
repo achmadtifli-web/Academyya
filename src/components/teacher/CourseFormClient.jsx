@@ -112,11 +112,11 @@ export function CourseFormClient({ categories = [], initialCourse = null }) {
       <InputField
         id="course-thumbnail"
         label="URL Gambar Sampul (Opsional)"
-        type="url"
+        type="text"
         value={thumbnailUrl}
         onChange={(e) => setThumbnailUrl(e.target.value)}
         error={fieldErrors.thumbnail_url}
-        hint="Kosongkan untuk memakai sampul ikon kategori otomatis."
+        hint="Kosongkan untuk memakai gambar sampul otomatis sesuai kategori."
         placeholder="https://example.com/thumbnail.jpg"
       />
 

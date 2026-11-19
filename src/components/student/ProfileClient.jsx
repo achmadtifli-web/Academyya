@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Save, Send } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { InputField, TextareaField } from '@/components/ui/Input';
@@ -103,20 +103,13 @@ export function ProfileClient({ initialUser, initialApplications = [] }) {
       {/* Left Preview Card */}
       <div className="lg:col-span-4 space-y-5">
         <div className="rounded-3xl bg-white border border-line p-6 text-center space-y-4">
-          <div className="w-24 h-24 mx-auto rounded-full bg-primary-light text-primary-dark font-heading font-bold text-3xl flex items-center justify-center overflow-hidden border-2 border-primary/20">
-            {user.avatar_url ? (
-              <Image
-                src={user.avatar_url}
-                alt={`Foto profil ${user.name}`}
-                width={96}
-                height={96}
-                unoptimized
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              user.name?.charAt(0)?.toUpperCase() || 'U'
-            )}
-          </div>
+          <Avatar
+            src={user.avatar_url}
+            name={user.name}
+            size="xl"
+            alt={`Foto profil ${user.name}`}
+            className="mx-auto border-2 border-primary/20"
+          />
           <div className="space-y-1.5">
             <h2 className="font-heading text-xl font-bold text-ink">{user.name}</h2>
             <p className="text-sm text-muted break-all">{user.email}</p>

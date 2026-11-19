@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Search, Trash2, Users } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -137,8 +138,13 @@ export function AdminUsersClient({ initialUsers = [], currentAdminId }) {
                   return (
                     <tr key={u.id} className="hover:bg-page/50">
                       <td className="py-4 px-5">
-                        <p className="font-semibold text-ink">{u.name}</p>
-                        <p className="text-sm text-muted">{u.email}</p>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar src={u.avatar_url} name={u.name} size="md" />
+                          <div className="min-w-0">
+                            <p className="font-semibold text-ink truncate">{u.name}</p>
+                            <p className="text-sm text-muted truncate">{u.email}</p>
+                          </div>
+                        </div>
                       </td>
                       <td className="py-4 px-5">
                         <StatusBadge status={u.role} />
@@ -188,9 +194,12 @@ export function AdminUsersClient({ initialUsers = [], currentAdminId }) {
               return (
                 <div key={u.id} className="rounded-3xl bg-white border border-line p-5 space-y-3">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-ink truncate">{u.name}</p>
-                      <p className="text-sm text-muted truncate">{u.email}</p>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Avatar src={u.avatar_url} name={u.name} size="md" />
+                      <div className="min-w-0">
+                        <p className="font-semibold text-ink truncate">{u.name}</p>
+                        <p className="text-sm text-muted truncate">{u.email}</p>
+                      </div>
                     </div>
                     <StatusBadge status={u.role} />
                   </div>
