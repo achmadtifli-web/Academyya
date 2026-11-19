@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { MessageSquare, Reply, Send } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/ToastContext';
@@ -195,9 +196,7 @@ export function DiscussionThread({ materialId }) {
             <div key={thread.id} className="rounded-2xl border border-line bg-page/50 p-4 sm:p-5 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <span className="w-9 h-9 rounded-full bg-primary-light text-primary-dark font-heading font-bold text-sm flex items-center justify-center">
-                    {thread.author_name?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
+                  <Avatar src={thread.author_avatar} name={thread.author_name} size="md" />
                   <span className="font-semibold text-base text-ink">
                     {thread.author_name}
                   </span>
@@ -262,6 +261,7 @@ export function DiscussionThread({ materialId }) {
                     <div key={reply.id} className="rounded-2xl bg-white border border-line p-4 space-y-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-2">
+                          <Avatar src={reply.author_avatar} name={reply.author_name} size="xs" />
                           <span className="font-semibold text-sm text-ink">
                             {reply.author_name}
                           </span>

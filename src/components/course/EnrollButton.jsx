@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Award, CheckCircle2, PlayCircle, Settings } from 'lucide-react';
+import { Award, CheckCircle2, PlayCircle, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/ToastContext';
 
@@ -22,7 +22,6 @@ export function EnrollButton({ course, currentUser, enrollment }) {
           className="w-full"
         >
           <span>Masuk untuk Ikuti Course</span>
-          <ArrowRight className="w-5 h-5" aria-hidden="true" />
         </Button>
         <p className="text-sm text-muted text-center">
           Belum punya akun?{' '}
@@ -155,7 +154,6 @@ export function EnrollButton({ course, currentUser, enrollment }) {
       className="w-full"
     >
       <span>{submitting ? 'Mendaftarkan...' : 'Ikuti Course Sekarang'}</span>
-      <ArrowRight className="w-5 h-5" aria-hidden="true" />
     </Button>
   );
 }

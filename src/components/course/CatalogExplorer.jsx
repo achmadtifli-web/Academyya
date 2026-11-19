@@ -84,11 +84,11 @@ export function CatalogExplorer({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 min-w-0">
       {/* Interactive Filter Bar */}
-      <div className="bg-white rounded-3xl border border-line p-4 sm:p-6 shadow-xs -mt-8 relative z-10 space-y-4">
-        <div className="grid gap-3 md:grid-cols-12">
-          <div className="md:col-span-5 relative">
+      <div className="bg-white rounded-3xl border border-line p-3.5 sm:p-6 shadow-xs -mt-8 relative z-10 space-y-4 w-full min-w-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 min-w-0">
+          <div className="min-w-0 sm:col-span-2 lg:col-span-5 relative">
             <label htmlFor="catalog-search" className="sr-only">
               Cari judul atau topik course
             </label>
@@ -104,12 +104,12 @@ export function CatalogExplorer({
                 setQ(e.target.value);
                 setPage(1);
               }}
-              placeholder="Cari materi, skill, atau judul course..."
-              className="w-full min-h-12 pl-12 pr-4 rounded-full border border-line-strong bg-page text-base text-ink placeholder:text-muted focus:bg-white focus:border-primary-hover"
+              placeholder="Cari materi atau judul course..."
+              className="w-full max-w-full min-w-0 min-h-12 pl-11 pr-4 rounded-full border border-slate-500/60 bg-page text-sm sm:text-base text-ink placeholder:text-muted focus:bg-white focus:border-primary-hover"
             />
           </div>
 
-          <div className="md:col-span-4">
+          <div className="min-w-0 lg:col-span-4">
             <label htmlFor="catalog-category" className="sr-only">
               Filter kategori
             </label>
@@ -120,7 +120,7 @@ export function CatalogExplorer({
                 setCategory(e.target.value);
                 setPage(1);
               }}
-              className="w-full min-h-12 px-4 rounded-full border border-line-strong bg-white text-base text-ink"
+              className="w-full max-w-full min-w-0 min-h-12 px-4 rounded-full border border-slate-500/60 bg-white text-sm sm:text-base text-ink truncate"
             >
               <option value="">Semua Kategori</option>
               {categories.map((cat) => (
@@ -131,7 +131,7 @@ export function CatalogExplorer({
             </select>
           </div>
 
-          <div className="md:col-span-3">
+          <div className="min-w-0 lg:col-span-3">
             <label htmlFor="catalog-sort" className="sr-only">
               Urutkan course
             </label>
@@ -142,7 +142,7 @@ export function CatalogExplorer({
                 setSort(e.target.value);
                 setPage(1);
               }}
-              className="w-full min-h-12 px-4 rounded-full border border-line-strong bg-white text-base text-ink"
+              className="w-full max-w-full min-w-0 min-h-12 px-4 rounded-full border border-slate-500/60 bg-white text-sm sm:text-base text-ink truncate"
             >
               <option value="newest">Urutkan: Terbaru</option>
               <option value="popular">Urutkan: Terpopuler</option>
@@ -150,36 +150,43 @@ export function CatalogExplorer({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter level">
-            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted mr-1">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pt-1 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 min-w-0 w-full md:w-auto">
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted shrink-0">
               <SlidersHorizontal className="w-4 h-4" aria-hidden="true" />
               <span>Level:</span>
             </span>
-            {LEVEL_OPTIONS.map((opt) => {
-              const active = level === opt.value;
-              return (
-                <button
-                  key={opt.value || 'all'}
-                  type="button"
-                  onClick={() => {
-                    setLevel(opt.value);
-                    setPage(1);
-                  }}
-                  aria-pressed={active}
-                  className={`min-h-11 px-4 rounded-full text-sm font-semibold transition border ${
-                    active
-                      ? 'bg-primary-hover text-white border-primary-hover'
-                      : 'bg-page text-ink border-line hover:border-primary'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
+
+            <div
+              className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 min-w-0 w-full sm:w-auto"
+              role="group"
+              aria-label="Filter level"
+            >
+              {LEVEL_OPTIONS.map((opt) => {
+                const active = level === opt.value;
+                return (
+                  <button
+                    key={opt.value || 'all'}
+                    type="button"
+                    onClick={() => {
+                      setLevel(opt.value);
+                      setPage(1);
+                    }}
+                    aria-pressed={active}
+                    className={`min-h-11 min-w-0 px-3 sm:px-4 rounded-full text-sm font-semibold transition border text-center leading-tight ${
+                      active
+                        ? 'bg-primary-hover text-white border-primary-hover'
+                        : 'bg-page text-ink border-slate-500/50 hover:border-primary-hover'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <p className="text-sm font-medium text-muted">
+          <p className="text-sm font-medium text-muted shrink-0">
             Menampilkan <strong className="text-ink">{pagination.total}</strong> course
           </p>
         </div>
@@ -201,7 +208,7 @@ export function CatalogExplorer({
           <div
             aria-busy="true"
             aria-label="Memuat daftar course"
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
             {[1, 2, 3, 4].map((idx) => (
               <div
@@ -226,7 +233,7 @@ export function CatalogExplorer({
           />
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {courses.map((course) => (
                 <CourseCard key={course.id} course={course} />
               ))}
