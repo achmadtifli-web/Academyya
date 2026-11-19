@@ -18,6 +18,15 @@ export function isValidHttpUrl(value) {
   }
 }
 
+export function isValidImageSource(value) {
+  if (!value) return true;
+  const trimmed = String(value).trim();
+  if (trimmed.startsWith('/images/') && !trimmed.startsWith('//')) {
+    return true;
+  }
+  return isValidHttpUrl(trimmed);
+}
+
 export function slugify(text) {
   return String(text || '')
     .toLowerCase()
@@ -164,8 +173,8 @@ export function validateCoursePayload(body) {
   if (!['pemula', 'menengah', 'lanjut'].includes(level)) {
     fieldErrors.level = 'Level harus pemula, menengah, atau lanjut.';
   }
-  if (thumbnailUrl && !isValidHttpUrl(thumbnailUrl)) {
-    fieldErrors.thumbnail_url = 'URL thumbnail harus diawali http:// atau https://.';
+  if (thumbnailUrl && !isValidImageSource(thumbnailUrl)) {
+    fieldErrors.thumbnail_url = 'URL thumbnail harus diawali http://, https://, atau /images/.';
   }
 
   return {

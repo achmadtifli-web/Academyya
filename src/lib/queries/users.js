@@ -233,7 +233,7 @@ export async function listTeacherApplicationsForAdmin(status = 'all') {
   const res = await query(
     `SELECT ta.id, ta.user_id, ta.expertise, ta.motivation, ta.portfolio_url,
             ta.status, ta.review_note, ta.reviewed_at, ta.created_at,
-            u.name AS applicant_name, u.email AS applicant_email,
+            u.name AS applicant_name, u.email AS applicant_email, u.avatar_url AS applicant_avatar,
             u.created_at AS applicant_joined_at, u.role AS current_user_role,
             r.name AS reviewer_name
      FROM teacher_applications ta

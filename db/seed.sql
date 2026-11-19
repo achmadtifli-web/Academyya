@@ -29,13 +29,13 @@ INSERT INTO categories (id, name, slug, description, icon) VALUES
 
 SELECT setval('categories_id_seq', (SELECT MAX(id) FROM categories));
 
-INSERT INTO courses (id, teacher_id, category_id, title, slug, description, level, status) VALUES
-  (1, 2, 1, 'Dasar Pemrograman Web Modern dengan HTML, CSS & JavaScript', 'dasar-pemrograman-web-modern', 'Pelajari fondasi membangun website interaktif dari nol dengan penjelasan langkah demi langkah yang mudah dipahami pemula.', 'pemula', 'published'),
-  (2, 2, 1, 'Menguasai PostgreSQL & Raw SQL untuk Aplikasi Web', 'menguasai-postgresql-raw-sql', 'Pahami perancangan tabel relasional, normalisasi 3NF, indeks, dan query SQL terparameter yang aman dan cepat.', 'menengah', 'published'),
-  (3, 3, 2, 'Prinsip Desain UI/UX Ramah Semua Usia', 'prinsip-desain-ui-ux-ramah-semua-usia', 'Belajar menyusun tipografi, kontras warna WCAG, dan tata letak kartu yang nyaman diakses anak muda hingga lansia.', 'pemula', 'published'),
-  (4, 3, 2, 'Membangun Design System dengan Tailwind CSS', 'membangun-design-system-tailwind-css', 'Terapkan token warna, skala tipografi, dan komponen UI modular menggunakan Tailwind CSS.', 'menengah', 'published'),
-  (5, 2, 4, 'Keamanan Digital & Anti Penipuan Online untuk Pemula', 'keamanan-digital-anti-penipuan-online', 'Panduan praktis menjaga keamanan akun, kata sandi, dan transaksi digital sehari-hari.', 'pemula', 'published'),
-  (6, 3, 3, 'Manajemen Waktu & Komunikasi Efektif di Dunia Kerja', 'manajemen-waktu-komunikasi-efektif', 'Susun prioritas tugas harian, catat rapat secara ringkas, dan bangun komunikasi tim yang jelas dan produktif.', 'lanjut', 'published');
+INSERT INTO courses (id, teacher_id, category_id, title, slug, description, thumbnail_url, level, status) VALUES
+  (1, 2, 1, 'Dasar Pemrograman Web Modern dengan HTML, CSS & JavaScript', 'dasar-pemrograman-web-modern', 'Pelajari fondasi membangun website interaktif dari nol dengan penjelasan langkah demi langkah yang mudah dipahami pemula.', '/images/courses/dasar-pemrograman-web-modern.jpg', 'pemula', 'published'),
+  (2, 2, 1, 'Menguasai PostgreSQL & Raw SQL untuk Aplikasi Web', 'menguasai-postgresql-raw-sql', 'Pahami perancangan tabel relasional, normalisasi 3NF, indeks, dan query SQL terparameter yang aman dan cepat.', '/images/courses/menguasai-postgresql-raw-sql.jpg', 'menengah', 'published'),
+  (3, 3, 2, 'Prinsip Desain UI/UX Ramah Semua Usia', 'prinsip-desain-ui-ux-ramah-semua-usia', 'Belajar menyusun tipografi, kontras warna WCAG, dan tata letak kartu yang nyaman diakses anak muda hingga lansia.', '/images/courses/prinsip-desain-ui-ux-ramah-semua-usia.jpg', 'pemula', 'published'),
+  (4, 3, 2, 'Membangun Design System dengan Tailwind CSS', 'membangun-design-system-tailwind-css', 'Terapkan token warna, skala tipografi, dan komponen UI modular menggunakan Tailwind CSS.', '/images/courses/membangun-design-system-tailwind-css.jpg', 'menengah', 'published'),
+  (5, 2, 4, 'Keamanan Digital & Anti Penipuan Online untuk Pemula', 'keamanan-digital-anti-penipuan-online', 'Panduan praktis menjaga keamanan akun, kata sandi, dan transaksi digital sehari-hari.', '/images/courses/keamanan-digital-anti-penipuan-online.jpg', 'pemula', 'published'),
+  (6, 3, 3, 'Manajemen Waktu & Komunikasi Efektif di Dunia Kerja', 'manajemen-waktu-komunikasi-efektif', 'Susun prioritas tugas harian, catat rapat secara ringkas, dan bangun komunikasi tim yang jelas dan produktif.', '/images/courses/manajemen-waktu-komunikasi-efektif.jpg', 'lanjut', 'published');
 
 SELECT setval('courses_id_seq', (SELECT MAX(id) FROM courses));
 

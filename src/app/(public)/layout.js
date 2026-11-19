@@ -10,7 +10,7 @@ export default async function PublicLayout({ children }) {
   return (
     <div className="min-h-screen flex flex-col bg-page">
       <Navbar initialUser={user} />
-      <div className="flex-1 flex flex-col">{children}</div>
+      <div className="flex-1 flex flex-col min-w-0 w-full">{children}</div>
       <Footer />
     </div>
   );

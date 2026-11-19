@@ -14,6 +14,7 @@ export async function listStudentEnrollments(studentId) {
        c.level,
        c.thumbnail_url,
        u.name AS teacher_name,
+       u.avatar_url AS teacher_avatar,
        cat.name AS category_name,
        COUNT(DISTINCT m.id)::int AS total_materials,
        COUNT(DISTINCT mp.id) FILTER (WHERE mp.is_completed = TRUE)::int AS completed_materials,
@@ -49,7 +50,7 @@ export async function listStudentEnrollments(studentId) {
      LEFT JOIN material_progress mp ON mp.enrollment_id = e.id AND mp.material_id = m.id
      LEFT JOIN certificates cert ON cert.enrollment_id = e.id
      WHERE e.student_id = $1
-     GROUP BY e.id, c.id, u.name, cat.name, cert.certificate_code
+     GROUP BY e.id, c.id, u.name, u.avatar_url, cat.name, cert.certificate_code
      ORDER BY e.enrolled_at DESC`,
     [studentId]
   );
@@ -211,6 +212,7 @@ export async function listTeacherStudents(teacherId, courseId = null) {
        s.id AS student_id,
        s.name AS student_name,
        s.email AS student_email,
+       s.avatar_url AS student_avatar,
        c.id AS course_id,
        c.title AS course_title,
        c.slug AS course_slug,
@@ -230,7 +232,7 @@ export async function listTeacherStudents(teacherId, courseId = null) {
      LEFT JOIN material_progress mp ON mp.enrollment_id = e.id AND mp.material_id = m.id
      WHERE c.teacher_id = $1
        AND ($2::bigint IS NULL OR c.id = $2)
-     GROUP BY e.id, s.id, s.name, s.email, c.id, c.title, c.slug
+     GROUP BY e.id, s.id, s.name, s.email, s.avatar_url, c.id, c.title, c.slug
      ORDER BY e.enrolled_at DESC`,
     [teacherId, courseId]
   );
