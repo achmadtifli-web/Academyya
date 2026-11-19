@@ -1,11 +1,8 @@
 import {
-  Award,
   BookOpen,
   Clock,
   FolderTree,
-  Globe,
   ShieldCheck,
-  UserCheck,
   Users,
 } from 'lucide-react';
 import { getAdminStats } from '@/lib/queries/users';
@@ -58,28 +55,24 @@ export default async function AdminDashboardPage() {
           label="Total Pengguna"
           value={stats.total_users}
           helper={`${stats.total_students} Student · ${stats.total_teachers} Teacher`}
-          icon={Users}
           tone="blue"
         />
         <StatCard
           label="Pengajuan Pending"
           value={stats.pending_teacher_requests}
           helper="Menunggu verifikasi"
-          icon={UserCheck}
           tone="amber"
         />
         <StatCard
           label="Course Published"
           value={stats.published_courses}
           helper={`${stats.draft_courses} draft · ${stats.total_categories} kategori`}
-          icon={Globe}
           tone="green"
         />
         <StatCard
           label="Total Pendaftaran"
           value={stats.total_enrollments}
           helper={`${stats.completed_enrollments} selesai 100%`}
-          icon={Award}
           tone="coral"
         />
       </div>

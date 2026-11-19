@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Award, BookOpen, Globe, Plus, Users } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
 import { getTeacherDashboardSummary, listTeacherCourses } from '@/lib/queries/courses';
 import { StatCard } from '@/components/admin/StatCard';
@@ -42,25 +42,21 @@ export default async function TeacherDashboardPage() {
         <StatCard
           label="Total Course"
           value={summary?.total_courses ?? 0}
-          icon={BookOpen}
           tone="blue"
         />
         <StatCard
           label="Sudah Published"
           value={summary?.published_courses ?? 0}
-          icon={Globe}
           tone="green"
         />
         <StatCard
           label="Siswa Terdaftar"
           value={summary?.total_enrollments ?? 0}
-          icon={Users}
           tone="coral"
         />
         <StatCard
           label="Siswa Lulus 100%"
           value={summary?.completed_enrollments ?? 0}
-          icon={Award}
           tone="purple"
         />
       </div>

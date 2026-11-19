@@ -3,9 +3,11 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { BadgeCheck, BookOpen, Clock, Users } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
+import { getCourseThumbnail } from '@/lib/courseThumbnails';
 import { getCourseDetailBySlug } from '@/lib/queries/courses';
 import { EnrollButton } from '@/components/course/EnrollButton';
 import { SyllabusList } from '@/components/course/SyllabusList';
+import { Avatar } from '@/components/ui/Avatar';
 import { StatusBadge } from '@/components/ui/Badge';
 import { HighlightUnderline } from '@/components/ui/HighlightUnderline';
 
@@ -56,13 +58,11 @@ export default async function CourseDetailPage({ params }) {
               </Link>
             </nav>
 
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center rounded-full bg-primary-light text-primary-dark px-3.5 py-1 text-sm font-semibold">
-                {course.category_name}
-              </span>
-              <StatusBadge status={course.level} />
-              {course.status === 'draft' && <StatusBadge status="draft" />}
-            </div>
+            {course.status === 'draft' && (
+              <div className="flex flex-wrap items-center gap-2.5">
+                <StatusBadge status="draft" />
+              </div>
+            )}
 
             <h1 className="font-heading text-3xl sm:text-4xl font-bold text-ink leading-tight tracking-tight">
               {course.title}
@@ -74,17 +74,19 @@ export default async function CourseDetailPage({ params }) {
 
             {/* Instructor Card Pill */}
             <div className="rounded-2xl border border-line bg-page p-4 sm:p-5 flex items-start gap-4">
-              <span className="w-12 h-12 rounded-full bg-primary-light text-primary-dark font-heading font-bold text-lg flex items-center justify-center shrink-0">
-                {course.teacher_name?.charAt(0)?.toUpperCase() || 'T'}
-              </span>
+              <Avatar
+                src={course.teacher_avatar}
+                name={course.teacher_name}
+                size="lg"
+              />
               <div className="space-y-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <p className="font-heading font-semibold text-base text-ink">
                     {course.teacher_name}
                   </p>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-primary-light text-primary-dark px-2.5 py-0.5 text-xs font-semibold">
-                    <BadgeCheck className="w-3.5 h-3.5" aria-hidden="true" />
-                    <span>Teacher Terverifikasi</span>
+                  <span title="Teacher terverifikasi" className="inline-flex items-center">
+                    <BadgeCheck className="w-4 h-4 text-primary-hover shrink-0" aria-hidden="true" />
+                    <span className="sr-only">Teacher terverifikasi</span>
                   </span>
                 </div>
                 {course.teacher_bio && (
@@ -117,24 +119,15 @@ export default async function CourseDetailPage({ params }) {
                 aria-hidden="true"
                 className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-coral/15"
               />
-              <div className="aspect-video rounded-2xl overflow-hidden bg-primary-light relative flex items-center justify-center">
-                {course.thumbnail_url ? (
-                  <Image
-                    src={course.thumbnail_url}
-                    alt={`Sampul ${course.title}`}
-                    width={640}
-                    height={360}
-                    unoptimized
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="text-center p-6 space-y-2">
-                    <BookOpen className="w-12 h-12 text-primary-dark mx-auto" aria-hidden="true" />
-                    <p className="font-heading font-semibold text-primary-dark text-base">
-                      {course.category_name}
-                    </p>
-                  </div>
-                )}
+              <div className="aspect-video rounded-2xl overflow-hidden bg-page border border-line relative flex items-center justify-center">
+                <Image
+                  src={getCourseThumbnail(course)}
+                  alt={`Sampul ${course.title}`}
+                  width={640}
+                  height={360}
+                  unoptimized
+                  className="w-full h-full object-cover"
+                />
               </div>
 
               <EnrollButton

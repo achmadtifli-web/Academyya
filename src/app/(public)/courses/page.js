@@ -23,7 +23,7 @@ export default async function CatalogPage({ searchParams }) {
   ]);
 
   return (
-    <main className="flex-1">
+    <main className="flex-1 min-w-0 w-full">
       <section className="bg-white border-b border-line pt-10 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
           <h1 className="font-heading text-3xl sm:text-4xl font-bold text-ink tracking-tight">

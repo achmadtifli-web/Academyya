@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { listStudentEnrollments } from '@/lib/queries/enrollments';
 import { AppFrame } from '@/components/layout/AppFrame';
 import { StudentDashboardClient } from '@/components/student/StudentDashboardClient';
+import { Avatar } from '@/components/ui/Avatar';
 import { HighlightUnderline } from '@/components/ui/HighlightUnderline';
 import { StatStrip } from '@/components/ui/StatStrip';
 
@@ -27,13 +28,16 @@ export default async function StudentDashboardPage() {
     <AppFrame user={user}>
       <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
         <section className="rounded-3xl bg-white border border-line p-6 sm:p-8 space-y-6">
-          <div className="space-y-2">
-            <h1 className="font-heading text-3xl sm:text-4xl font-bold text-ink tracking-tight">
-              Halo, {user.name}! <HighlightUnderline>My Learning</HighlightUnderline>
-            </h1>
-            <p className="text-base sm:text-lg text-muted">
-              Pantau seluruh course yang Anda ikuti dan lanjutkan materi dari titik terakhir Anda.
-            </p>
+          <div className="flex flex-wrap items-center gap-4">
+            <Avatar src={user.avatar_url} name={user.name} size="lg" />
+            <div className="space-y-1.5 min-w-0">
+              <h1 className="font-heading text-3xl sm:text-4xl font-bold text-ink tracking-tight">
+                Halo, {user.name}! <HighlightUnderline>My Learning</HighlightUnderline>
+              </h1>
+              <p className="text-base sm:text-lg text-muted">
+                Pantau seluruh course yang Anda ikuti dan lanjutkan materi dari titik terakhir Anda.
+              </p>
+            </div>
           </div>
 
           <StatStrip

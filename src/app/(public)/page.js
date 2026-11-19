@@ -1,21 +1,16 @@
-import Link from 'next/link';
 import {
-  ArrowRight,
   Award,
   BookOpen,
   CheckCircle2,
   MessageSquare,
   PlayCircle,
-  UserCheck,
 } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
-import { listCategoriesWithCounts } from '@/lib/queries/categories';
 import { getPlatformStats, listPopularCourses } from '@/lib/queries/courses';
 import { listStudentEnrollments } from '@/lib/queries/enrollments';
 import { CourseCard } from '@/components/course/CourseCard';
 import { HeroVisual } from '@/components/layout/HeroVisual';
 import { Button } from '@/components/ui/Button';
-import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { HighlightUnderline } from '@/components/ui/HighlightUnderline';
 import { StatStrip } from '@/components/ui/StatStrip';
 
@@ -57,10 +52,9 @@ const HOW_IT_WORKS_STEPS = [
 ];
 
 export default async function HomePage() {
-  const [user, stats, categories, popularCourses] = await Promise.all([
+  const [user, stats, popularCourses] = await Promise.all([
     getCurrentUser(),
     getPlatformStats(),
-    listCategoriesWithCounts(),
     listPopularCourses(4),
   ]);
 
@@ -72,7 +66,7 @@ export default async function HomePage() {
   }
 
   return (
-    <main>
+    <main className="flex-1 min-w-0 w-full">
       {/* Hero Section */}
       <section className="bg-page pt-10 pb-16 lg:py-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-12 gap-12 items-center">
@@ -113,36 +107,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Category Explorer */}
-      {categories.length > 0 && (
-        <section id="kategori" className="bg-white py-10 sm:py-14 border-y border-line scroll-mt-20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="space-y-4 text-center">
-              <h2 className="font-heading text-xl font-semibold text-ink">
-                Jelajahi Kategori Pembelajaran
-              </h2>
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                {categories.map((cat) => (
-                  <Link
-                    key={cat.id}
-                    href={`/courses?category=${cat.slug}`}
-                    className="min-h-11 px-5 py-2.5 rounded-full border border-line bg-white hover:border-primary-hover hover:bg-primary-light/50 font-medium text-sm sm:text-base text-ink inline-flex items-center gap-2 transition"
-                  >
-                    <CategoryIcon name={cat.icon} className="w-4 h-4 text-primary-hover" />
-                    <span>{cat.name}</span>
-                    <span className="text-xs font-semibold text-muted">
-                      ({cat.published_courses_count})
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* Popular Courses */}
-      <section className="bg-page py-16">
+      <section className="bg-white py-16 border-y border-line">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="space-y-2">
@@ -155,16 +121,15 @@ export default async function HomePage() {
             </div>
             <Button href="/courses" variant="outline" size="sm">
               <span>Lihat Semua</span>
-              <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </Button>
           </div>
 
           {popularCourses.length === 0 ? (
-            <div className="rounded-3xl border border-line bg-white p-8 text-center text-muted">
+            <div className="rounded-3xl border border-line bg-page p-8 text-center text-muted">
               Belum ada course yang dipublikasikan.
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
               {popularCourses.map((course) => (
                 <CourseCard key={course.id} course={course} />
               ))}
@@ -174,7 +139,7 @@ export default async function HomePage() {
       </section>
 
       {/* How It Works */}
-      <section id="cara-kerja" className="bg-white py-16 border-t border-line scroll-mt-20">
+      <section id="cara-kerja" className="bg-page py-16 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           <div className="max-w-2xl space-y-2">
             <h2 className="font-heading text-2xl sm:text-3xl font-bold text-ink">
@@ -191,7 +156,7 @@ export default async function HomePage() {
               return (
                 <div
                   key={step.title}
-                  className="rounded-3xl p-6 bg-page border border-line flex flex-col gap-4"
+                  className="rounded-3xl p-6 bg-white border border-line flex flex-col gap-4"
                 >
                   <div className="flex items-center justify-between">
                     <div
@@ -217,77 +182,73 @@ export default async function HomePage() {
       </section>
 
       {/* Contextual Recommendation / Teacher CTA Banner */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-        {activeEnrollment ? (
-          <div className="rounded-3xl bg-primary-light/80 border border-primary/25 p-8 sm:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="space-y-3 max-w-2xl">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1 text-sm font-semibold text-primary-dark">
-                <PlayCircle className="w-4 h-4" aria-hidden="true" />
-                <span>Lanjutkan Belajarmu</span>
-              </span>
-              <h2 className="font-heading text-2xl sm:text-3xl font-bold text-ink">
-                {activeEnrollment.title}
-              </h2>
-              <div className="space-y-1.5 max-w-md">
-                <div className="flex justify-between text-sm font-semibold text-ink">
-                  <span>Progres saat ini</span>
-                  <span>{activeEnrollment.progress_percent}% Selesai</span>
-                </div>
-                <div className="h-3 w-full rounded-full bg-white overflow-hidden border border-primary/20">
-                  <div
-                    className="h-full rounded-full bg-primary-hover"
-                    style={{ width: `${activeEnrollment.progress_percent}%` }}
-                  />
+      <section className="bg-white border-t border-line py-14">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {activeEnrollment ? (
+            <div className="rounded-3xl bg-primary-light/80 border border-primary/25 p-8 sm:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-3 max-w-2xl">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1 text-sm font-semibold text-primary-dark">
+                  <PlayCircle className="w-4 h-4" aria-hidden="true" />
+                  <span>Lanjutkan Belajarmu</span>
+                </span>
+                <h2 className="font-heading text-2xl sm:text-3xl font-bold text-ink">
+                  {activeEnrollment.title}
+                </h2>
+                <div className="space-y-1.5 max-w-md">
+                  <div className="flex justify-between text-sm font-semibold text-ink">
+                    <span>Progres saat ini</span>
+                    <span>{activeEnrollment.progress_percent}% Selesai</span>
+                  </div>
+                  <div className="h-3 w-full rounded-full bg-white overflow-hidden border border-primary/20">
+                    <div
+                      className="h-full rounded-full bg-primary-hover"
+                      style={{ width: `${activeEnrollment.progress_percent}%` }}
+                    />
+                  </div>
                 </div>
               </div>
+              <div className="shrink-0">
+                <Button
+                  href={
+                    activeEnrollment.next_material_id || activeEnrollment.first_material_id
+                      ? `/learn/${activeEnrollment.slug}/${
+                          activeEnrollment.next_material_id || activeEnrollment.first_material_id
+                        }`
+                      : `/learn/${activeEnrollment.slug}`
+                  }
+                  variant="primary"
+                  size="lg"
+                >
+                  <span>Lanjutkan Belajar</span>
+                </Button>
+              </div>
             </div>
-            <div className="shrink-0">
-              <Button
-                href={
-                  activeEnrollment.next_material_id || activeEnrollment.first_material_id
-                    ? `/learn/${activeEnrollment.slug}/${
-                        activeEnrollment.next_material_id || activeEnrollment.first_material_id
-                      }`
-                    : `/learn/${activeEnrollment.slug}`
-                }
-                variant="primary"
-                size="lg"
-              >
-                <span>Lanjutkan Belajar</span>
-                <ArrowRight className="w-5 h-5" aria-hidden="true" />
-              </Button>
+          ) : (
+            <div className="rounded-3xl bg-primary-light/80 border border-primary/25 p-8 sm:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden">
+              <div
+                aria-hidden="true"
+                className="hidden sm:block absolute -right-10 -bottom-10 w-44 h-44 rounded-full bg-coral/20"
+              />
+              <div
+                aria-hidden="true"
+                className="hidden sm:block absolute right-24 -top-10 w-24 h-24 rounded-full bg-accent/35"
+              />
+              <div className="space-y-3 max-w-2xl relative z-10">
+                <h2 className="font-heading text-2xl sm:text-3xl font-bold text-ink">
+                  Siap Berbagi Ilmu sebagai Pengajar?
+                </h2>
+                <p className="text-base text-ink/85 leading-relaxed">
+                  Daftarkan diri Anda menjadi Teacher terverifikasi, susun materi pembelajaran langkah demi langkah, dan bantu lebih banyak pelajar menguasai keahlian baru.
+                </p>
+              </div>
+              <div className="shrink-0 relative z-10">
+                <Button href="/register?type=teacher" variant="primary" size="lg">
+                  <span>Daftar Jadi Teacher</span>
+                </Button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="rounded-3xl bg-primary-light/80 border border-primary/25 p-8 sm:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden">
-            <div
-              aria-hidden="true"
-              className="hidden sm:block absolute -right-10 -bottom-10 w-44 h-44 rounded-full bg-coral/20"
-            />
-            <div
-              aria-hidden="true"
-              className="hidden sm:block absolute right-24 -top-10 w-24 h-24 rounded-full bg-accent/35"
-            />
-            <div className="space-y-3 max-w-2xl relative z-10">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1 text-sm font-semibold text-primary-dark">
-                <UserCheck className="w-4 h-4" aria-hidden="true" />
-                <span>Program Pengajar Academyya</span>
-              </span>
-              <h2 className="font-heading text-2xl sm:text-3xl font-bold text-ink">
-                Siap Berbagi Ilmu sebagai Pengajar?
-              </h2>
-              <p className="text-base text-ink/85 leading-relaxed">
-                Daftarkan diri Anda menjadi Teacher terverifikasi, susun materi pembelajaran langkah demi langkah, dan bantu lebih banyak pelajar menguasai keahlian baru.
-              </p>
-            </div>
-            <div className="shrink-0 relative z-10">
-              <Button href="/register?type=teacher" variant="primary" size="lg">
-                <span>Daftar Jadi Teacher</span>
-                <ArrowRight className="w-5 h-5" aria-hidden="true" />
-              </Button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </section>
     </main>
   );
