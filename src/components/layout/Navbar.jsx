@@ -18,8 +18,8 @@ import {
   UserCheck,
   X,
 } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
-import { FontSizeControl } from '@/components/ui/FontSizeControl';
 import { useToast } from '@/components/ui/ToastContext';
 
 const PUBLIC_NAV_LINKS = [
@@ -157,8 +157,9 @@ export function Navbar({ initialUser = null }) {
   const unreadCount = unreadOverride !== null ? unreadOverride : user?.unread_notifications || 0;
 
   return (
-    <header className="no-print sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-line">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+    <>
+      <header className="no-print fixed top-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-b border-line">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
         <Link
           href="/"
           className="min-h-11 flex items-center gap-2.5 shrink-0 rounded-full pr-2 py-1"
@@ -171,7 +172,7 @@ export function Navbar({ initialUser = null }) {
           </span>
         </Link>
 
-        <nav aria-label="Navigasi utama" className="hidden md:flex items-center gap-4 lg:gap-6">
+        <nav aria-label="Navigasi utama" className="hidden lg:flex items-center gap-4 lg:gap-6">
           {PUBLIC_NAV_LINKS.map((item) => {
             const isActive =
               item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
@@ -191,9 +192,7 @@ export function Navbar({ initialUser = null }) {
           })}
         </nav>
 
-        <div className="hidden md:flex items-center gap-3">
-          <FontSizeControl />
-
+        <div className="hidden lg:flex items-center gap-3">
           {!user ? (
             <div className="flex items-center gap-2.5">
               <Button href="/login" variant="outline" size="sm">
@@ -302,9 +301,7 @@ export function Navbar({ initialUser = null }) {
                   aria-label="Menu pengguna"
                   className="min-h-11 inline-flex items-center gap-2 rounded-full border border-line bg-white pl-2 pr-3 py-1 hover:bg-page transition"
                 >
-                  <span className="w-8 h-8 rounded-full bg-primary-light text-primary-dark font-heading font-bold text-sm flex items-center justify-center">
-                    {user.name?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
+                  <Avatar src={user.avatar_url} name={user.name} size="sm" />
                   <span className="hidden xl:inline text-sm font-semibold text-ink max-w-28 truncate">
                     {user.name}
                   </span>
@@ -313,9 +310,12 @@ export function Navbar({ initialUser = null }) {
 
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-60 rounded-3xl border border-line bg-white shadow-xl p-2 z-50">
-                    <div className="px-3 py-2 border-b border-line mb-1">
-                      <p className="text-sm font-semibold text-ink truncate">{user.name}</p>
-                      <p className="text-sm text-muted truncate">{user.email}</p>
+                    <div className="px-3 py-2 border-b border-line mb-1 flex items-center gap-2.5">
+                      <Avatar src={user.avatar_url} name={user.name} size="md" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-ink truncate">{user.name}</p>
+                        <p className="text-sm text-muted truncate">{user.email}</p>
+                      </div>
                     </div>
                     <Link
                       href="/profile"
@@ -350,7 +350,7 @@ export function Navbar({ initialUser = null }) {
           )}
         </div>
 
-        <div className="flex md:hidden items-center gap-2">
+        <div className="flex lg:hidden items-center gap-2">
           <button
             type="button"
             onClick={() => setOpenPanel(mobileOpen ? null : `mobile:${pathname}`)}
@@ -372,13 +372,8 @@ export function Navbar({ initialUser = null }) {
       {mobileOpen && (
         <div
           id="mobile-navigation-drawer"
-          className="md:hidden border-t border-line bg-white px-4 py-4 space-y-3"
+          className="lg:hidden border-t border-line bg-white px-4 py-4 space-y-3 max-h-[calc(100dvh-5rem)] overflow-y-auto"
         >
-          <div className="flex items-center justify-between pb-3 border-b border-line">
-            <span className="text-sm font-semibold text-muted">Ukuran Teks</span>
-            <FontSizeControl />
-          </div>
-
           <nav aria-label="Navigasi seluler" className="space-y-1">
             {PUBLIC_NAV_LINKS.map((item) => {
               const Icon = item.Icon;
@@ -413,6 +408,13 @@ export function Navbar({ initialUser = null }) {
             </div>
           ) : (
             <div className="pt-3 border-t border-line space-y-2">
+              <div className="px-2 pb-1 flex items-center gap-3">
+                <Avatar src={user.avatar_url} name={user.name} size="md" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-ink truncate">{user.name}</p>
+                  <p className="text-xs text-muted truncate">{user.email}</p>
+                </div>
+              </div>
               {workspace && (
                 <Link
                   href={workspace.href}
@@ -453,6 +455,8 @@ export function Navbar({ initialUser = null }) {
           )}
         </div>
       )}
-    </header>
+      </header>
+      <div className="no-print h-20 shrink-0" aria-hidden="true" />
+    </>
   );
 }
