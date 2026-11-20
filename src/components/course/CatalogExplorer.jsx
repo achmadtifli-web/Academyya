@@ -187,7 +187,7 @@ export function CatalogExplorer({
           </div>
 
           <p className="text-sm font-medium text-muted shrink-0">
-            Menampilkan <strong className="text-ink">{pagination.total}</strong> course
+            Hasil  <strong className="text-ink">{pagination.total}</strong> course
           </p>
         </div>
       </div>
