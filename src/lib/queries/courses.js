@@ -280,7 +280,7 @@ export async function updateCourseDetails(courseId, fields) {
 
 export async function deleteCourseById(courseId) {
   const res = await query(
-    `DELETE FROM courses WHERE id = $1 RETURNING id, title`,
+    `DELETE FROM courses WHERE id = $1 RETURNING id, title, thumbnail_url`,
     [courseId]
   );
   return res.rows[0] || null;
