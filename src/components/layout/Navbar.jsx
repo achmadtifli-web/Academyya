@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -164,9 +165,14 @@ export function Navbar({ initialUser = null }) {
           href="/"
           className="min-h-11 flex items-center gap-2.5 shrink-0 rounded-full pr-2 py-1"
         >
-          <span className="w-10 h-10 rounded-full bg-primary-hover text-white font-heading font-bold text-base flex items-center justify-center">
-            Ac
-          </span>
+          <Image
+            src="/logo.png"
+            alt=""
+            width={44}
+            height={44}
+            priority
+            className="w-11 h-11 object-contain shrink-0"
+          />
           <span className="font-heading font-bold text-xl text-primary-dark tracking-tight">
             Academyya
           </span>
@@ -213,7 +219,7 @@ export function Navbar({ initialUser = null }) {
                   className="relative min-h-11 min-w-11 flex items-center justify-center rounded-full border border-line bg-white text-ink hover:bg-page transition"
                 >
                   <Bell className="w-5 h-5" aria-hidden="true" />
-                  {unreadCount > 0 && (
+                  {unreadCount > 0  && (
                     <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-coral text-ink text-xs font-bold flex items-center justify-center border-2 border-white">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>

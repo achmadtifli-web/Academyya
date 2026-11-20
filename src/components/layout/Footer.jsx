@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 export function Footer() {
@@ -6,11 +7,20 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div className="space-y-3">
-            <Link href="/" className="min-h-11 inline-flex items-center gap-2.5">
-              <span className="w-10 h-10 rounded-full bg-white text-primary-dark font-heading font-bold text-base flex items-center justify-center">
-                Ac
+            <Link
+              href="/"
+              className="min-h-11 inline-flex items-center gap-2.5 rounded-full pr-2 py-0.5 transition hover:opacity-90 active:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            >
+              <span className="w-11 h-11 rounded-full bg-white p-0.5 flex items-center justify-center shrink-0">
+                <Image
+                  src="/logo.png"
+                  alt=""
+                  width={40}
+                  height={40}
+                  className="w-10 h-10 object-contain"
+                />
               </span>
-              <span className="font-heading font-bold text-xl text-white">
+              <span className="font-heading font-bold text-xl text-white tracking-tight">
                 Academyya
               </span>
             </Link>
