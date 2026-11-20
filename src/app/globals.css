@@ -99,19 +99,131 @@
   }
 }
 
+@keyframes hero-float-diagonal {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(-7px, -11px, 0) rotate(-3deg);
+  }
+}
+
+@keyframes hero-float-vertical {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0) rotate(-3deg);
+  }
+}
+
+@keyframes hero-float-orb-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -9px, 0);
+  }
+}
+
+@keyframes hero-float-orb-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, 8px, 0);
+  }
+}
+
+.hero-float-rocket {
+  animation: hero-float-diagonal 6.8s ease-in-out infinite;
+  animation-delay: 0s;
+  will-change: transform;
+}
+
+.hero-float-trophy {
+  animation: hero-float-vertical 5.8s ease-in-out infinite;
+  animation-delay: -1.6s;
+  will-change: transform;
+}
+
+.hero-float-orb-top {
+  animation: hero-float-orb-a 6.2s ease-in-out infinite;
+  animation-delay: -0.9s;
+  will-change: transform;
+}
+
+.hero-float-orb-bottom {
+  animation: hero-float-orb-b 7.4s ease-in-out infinite;
+  animation-delay: -2.8s;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-float-rocket,
+  .hero-float-trophy,
+  .hero-float-orb-top,
+  .hero-float-orb-bottom {
+    animation: none !important;
+    transform: translate3d(0, 0, 0) !important;
+    will-change: auto !important;
+  }
+}
+
+@page certificate-sheet {
+  size: A4 landscape;
+  margin: 0;
+}
+
 @media print {
   body {
     background: #ffffff !important;
+  }
+
+  html:has(.print-sheet),
+  body:has(.print-sheet) {
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 297mm !important;
+    height: 209.5mm !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
   }
 
   .no-print {
     display: none !important;
   }
 
-  .print-sheet {
-    box-shadow: none !important;
-    margin: 0 auto !important;
+  .print-page-shell {
+    min-height: 0 !important;
+    max-width: none !important;
     width: 100% !important;
-    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .print-sheet {
+    page: certificate-sheet;
+    box-sizing: border-box !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    width: 297mm !important;
+    height: 209.5mm !important;
+    max-width: none !important;
+    padding: 8mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }
