@@ -9,6 +9,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { getPlatformStats, listPopularCourses } from '@/lib/queries/courses';
 import { listStudentEnrollments } from '@/lib/queries/enrollments';
 import { CourseCard } from '@/components/course/CourseCard';
+import { FaqSection } from '@/components/home/FaqSection';
 import { HeroVisual } from '@/components/layout/HeroVisual';
 import { Button } from '@/components/ui/Button';
 import { HighlightUnderline } from '@/components/ui/HighlightUnderline';
@@ -181,8 +182,11 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Frequently Asked Questions */}
+      <FaqSection />
+
       {/* Contextual Recommendation / Teacher CTA Banner */}
-      <section className="bg-white border-t border-line py-14">
+      <section className="bg-page border-t border-line py-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {activeEnrollment ? (
             <div className="rounded-3xl bg-primary-light/80 border border-primary/25 p-8 sm:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">

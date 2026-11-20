@@ -115,7 +115,7 @@ export default async function AdminDashboardPage() {
           <Users className="w-6 h-6 text-purple" aria-hidden="true" />
           <h2 className="font-heading text-lg font-semibold text-ink">Kelola Pengguna</h2>
           <p className="text-sm text-muted">
-            Lihat daftar akun terdaftar dan sesuaikan peran pengguna.
+            Lihat daftar akun terdaftar, filter berdasarkan peran, atau hapus akun pengguna.
           </p>
           <Button href="/admin/users" variant="outline" size="sm" className="w-full">
             Lihat Pengguna

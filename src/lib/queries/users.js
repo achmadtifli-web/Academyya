@@ -192,17 +192,6 @@ export async function listAdminUsers({ q = null, role = null } = {}) {
   return res.rows;
 }
 
-export async function updateUserRoleByAdmin(targetUserId, role) {
-  const res = await query(
-    `UPDATE users
-     SET role = $1
-     WHERE id = $2
-     RETURNING id, name, email, role, created_at`,
-    [role, targetUserId]
-  );
-  return res.rows[0] || null;
-}
-
 export async function deleteUserByAdmin(targetUserId) {
   const res = await query(
     `DELETE FROM users WHERE id = $1 RETURNING id, name, email`,

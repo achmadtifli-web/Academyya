@@ -40,7 +40,9 @@ export default async function EditTeacherCoursePage({ params }) {
 
       <div className="space-y-1">
         <h1 className="font-heading text-3xl font-bold text-ink">Edit Informasi Course</h1>
-        <p className="text-base text-muted">Perbarui judul, kategori, level, atau deskripsi kelas.</p>
+        <p className="text-base text-muted">
+          Perbarui judul, kategori, level, foto sampul, atau deskripsi kelas.
+        </p>
       </div>
 
       <CourseFormClient categories={categories} initialCourse={course} />

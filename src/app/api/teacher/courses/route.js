@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { mapPgError } from '@/lib/db';
 import { requireApiRole } from '@/lib/auth';
+import { parseCourseRequest } from '@/lib/courseRequest';
+import {
+  deleteStoredCourseThumbnailByUrl,
+  saveCourseThumbnailFile,
+} from '@/lib/courseThumbnailStorage';
 import { createTeacherCourse, listTeacherCourses } from '@/lib/queries/courses';
-import { validateCoursePayload } from '@/lib/validators';
 
 export async function GET() {
   const { user, errorResponse } = await requireApiRole(['teacher', 'admin']);
@@ -23,15 +27,31 @@ export async function POST(request) {
   const { user, errorResponse } = await requireApiRole(['teacher', 'admin']);
   if (errorResponse) return errorResponse;
 
+  let uploadedThumbnailUrl = null;
+
   try {
-    const body = await request.json().catch(() => null);
-    const validation = validateCoursePayload(body);
-    if (!validation.valid) {
+    const parsed = await parseCourseRequest(request);
+    if (!parsed.ok) {
+      return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+    }
+
+    const fieldErrors = { ...parsed.validation.fieldErrors };
+
+    if (parsed.thumbnailFile && Object.keys(fieldErrors).length === 0) {
+      const uploadRes = await saveCourseThumbnailFile(user.id, parsed.thumbnailFile);
+      if (uploadRes.error) {
+        fieldErrors.thumbnail = uploadRes.error;
+      } else {
+        uploadedThumbnailUrl = uploadRes.thumbnailUrl;
+      }
+    }
+
+    if (Object.keys(fieldErrors).length > 0) {
       return NextResponse.json(
         {
           success: false,
           error: 'Periksa kembali formulir course.',
-          fieldErrors: validation.fieldErrors,
+          fieldErrors,
         },
         { status: 400 }
       );
@@ -39,7 +59,8 @@ export async function POST(request) {
 
     const course = await createTeacherCourse({
       teacherId: user.id,
-      ...validation.data,
+      ...parsed.validation.data,
+      thumbnail_url: uploadedThumbnailUrl || parsed.validation.data.thumbnail_url,
     });
 
     return NextResponse.json(
@@ -47,6 +68,9 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (err) {
+    if (uploadedThumbnailUrl) {
+      await deleteStoredCourseThumbnailByUrl(uploadedThumbnailUrl);
+    }
     const mapped = mapPgError(err);
     if (mapped) {
       return NextResponse.json({ success: false, error: mapped.error }, { status: mapped.status });

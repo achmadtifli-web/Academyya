@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireApiRole } from '@/lib/auth';
+import { deleteStoredCourseThumbnailByUrl } from '@/lib/courseThumbnailStorage';
 import { deleteCourseById, getCourseById, updateCourseDetails } from '@/lib/queries/courses';
 import { parsePositiveInt } from '@/lib/validators';
 
@@ -69,6 +70,10 @@ export async function DELETE(_request, context) {
     const deleted = await deleteCourseById(courseId);
     if (!deleted) {
       return NextResponse.json({ success: false, error: 'Course tidak ditemukan.' }, { status: 404 });
+    }
+
+    if (deleted.thumbnail_url) {
+      await deleteStoredCourseThumbnailByUrl(deleted.thumbnail_url);
     }
 
     return NextResponse.json(

@@ -18,10 +18,16 @@ export function isValidHttpUrl(value) {
   }
 }
 
+const LOCAL_UPLOADED_COURSE_IMAGE_REGEX =
+  /^\/api\/uploads\/courses\/course-\d+-[a-f0-9]+\.(jpg|png|webp)$/;
+
 export function isValidImageSource(value) {
   if (!value) return true;
   const trimmed = String(value).trim();
-  if (trimmed.startsWith('/images/') && !trimmed.startsWith('//')) {
+  if (trimmed.startsWith('/images/') && !trimmed.startsWith('//') && !trimmed.includes('..')) {
+    return true;
+  }
+  if (LOCAL_UPLOADED_COURSE_IMAGE_REGEX.test(trimmed)) {
     return true;
   }
   return isValidHttpUrl(trimmed);
