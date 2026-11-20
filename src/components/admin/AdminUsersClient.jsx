@@ -25,30 +25,6 @@ export function AdminUsersClient({ initialUsers = [], currentAdminId }) {
     return matchRole && matchQ;
   });
 
-  const handleRoleChange = async (targetUser, nextRole) => {
-    setBusyId(targetUser.id);
-    try {
-      const res = await fetch(`/api/admin/users/${targetUser.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: nextRole }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || 'Gagal memperbarui peran pengguna.');
-      }
-
-      setUsers((prev) =>
-        prev.map((u) => (u.id === targetUser.id ? { ...u, role: nextRole } : u))
-      );
-      showToast({ type: 'success', message: json.message });
-    } catch (err) {
-      showToast({ type: 'error', message: err.message || 'Gagal memperbarui peran pengguna.' });
-    } finally {
-      setBusyId(null);
-    }
-  };
-
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setBusyId(deleteTarget.id);
@@ -156,20 +132,6 @@ export function AdminUsersClient({ initialUsers = [], currentAdminId }) {
                       </td>
                       <td className="py-4 px-5">
                         <div className="flex items-center justify-end gap-2">
-                          <label htmlFor={`role-${u.id}`} className="sr-only">
-                            Ubah peran {u.name}
-                          </label>
-                          <select
-                            id={`role-${u.id}`}
-                            value={u.role}
-                            disabled={isSelf || busyId === u.id}
-                            onChange={(e) => handleRoleChange(u, e.target.value)}
-                            className="min-h-11 rounded-full border border-line-strong bg-white px-3 text-sm font-medium text-ink disabled:opacity-50"
-                          >
-                            <option value="student">Student</option>
-                            <option value="teacher">Teacher</option>
-                            <option value="admin">Admin</option>
-                          </select>
                           <Button
                             variant="dangerOutline"
                             size="sm"
@@ -203,25 +165,20 @@ export function AdminUsersClient({ initialUsers = [], currentAdminId }) {
                     </div>
                     <StatusBadge status={u.role} />
                   </div>
-                  <div className="flex items-center gap-2 pt-1">
-                    <select
-                      aria-label={`Ubah peran ${u.name}`}
-                      value={u.role}
-                      disabled={isSelf || busyId === u.id}
-                      onChange={(e) => handleRoleChange(u, e.target.value)}
-                      className="flex-1 min-h-11 rounded-full border border-line-strong bg-white px-3 text-sm font-medium text-ink disabled:opacity-50"
-                    >
-                      <option value="student">Student</option>
-                      <option value="teacher">Teacher</option>
-                      <option value="admin">Admin</option>
-                    </select>
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <span className="text-sm text-muted">
+                      {u.role === 'teacher'
+                        ? `${u.courses_count} course`
+                        : `${u.enrollments_count} enrollment`}
+                    </span>
                     <Button
                       variant="dangerOutline"
                       size="sm"
                       disabled={isSelf || busyId === u.id}
                       onClick={() => setDeleteTarget(u)}
                     >
-                      Hapus
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
+                      <span>Hapus</span>
                     </Button>
                   </div>
                 </div>
