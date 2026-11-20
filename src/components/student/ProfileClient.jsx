@@ -1,22 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, Send } from 'lucide-react';
+import { AlertCircle, Save, Send, Trash2, Upload, X } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { InputField, TextareaField } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/ToastContext';
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+
 export function ProfileClient({ initialUser, initialApplications = [] }) {
   const router = useRouter();
   const { showToast } = useToast();
+  const fileInputRef = useRef(null);
 
   const [user, setUser] = useState(initialUser);
   const [name, setName] = useState(initialUser.name || '');
   const [bio, setBio] = useState(initialUser.bio || '');
-  const [avatarUrl, setAvatarUrl] = useState(initialUser.avatar_url || '');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [localPreviewUrl, setLocalPreviewUrl] = useState('');
+  const [removeAvatar, setRemoveAvatar] = useState(false);
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -31,21 +38,95 @@ export function ProfileClient({ initialUser, initialApplications = [] }) {
 
   const hasPendingApp = applications.some((a) => a.status === 'pending');
 
+  useEffect(() => {
+    return () => {
+      if (localPreviewUrl) {
+        URL.revokeObjectURL(localPreviewUrl);
+      }
+    };
+  }, [localPreviewUrl]);
+
+  const activeAvatarSrc = localPreviewUrl
+    ? localPreviewUrl
+    : removeAvatar
+    ? null
+    : user.avatar_url;
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        avatar: 'Format foto harus JPG, PNG, atau WebP.',
+      }));
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > MAX_AVATAR_BYTES) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        avatar: 'Ukuran foto profil maksimal 2 MB.',
+      }));
+      e.target.value = '';
+      return;
+    }
+
+    if (localPreviewUrl) {
+      URL.revokeObjectURL(localPreviewUrl);
+    }
+
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.avatar;
+      return next;
+    });
+    setSelectedFile(file);
+    setLocalPreviewUrl(URL.createObjectURL(file));
+    setRemoveAvatar(false);
+  };
+
+  const handleCancelSelectedFile = () => {
+    if (localPreviewUrl) {
+      URL.revokeObjectURL(localPreviewUrl);
+    }
+    setSelectedFile(null);
+    setLocalPreviewUrl('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    handleCancelSelectedFile();
+    setRemoveAvatar(true);
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.avatar;
+      return next;
+    });
+  };
+
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     setSavingProfile(true);
     setFieldErrors({});
     try {
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('bio', bio);
+      formData.append('currentPassword', currentPassword);
+      formData.append('newPassword', newPassword);
+      formData.append('removeAvatar', removeAvatar ? 'true' : 'false');
+      if (selectedFile) {
+        formData.append('avatar', selectedFile);
+      }
+
       const res = await fetch('/api/profile', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          bio,
-          avatar_url: avatarUrl,
-          currentPassword,
-          newPassword,
-        }),
+        body: formData,
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -54,6 +135,8 @@ export function ProfileClient({ initialUser, initialApplications = [] }) {
       }
 
       setUser(json.data.user);
+      handleCancelSelectedFile();
+      setRemoveAvatar(false);
       setCurrentPassword('');
       setNewPassword('');
       showToast({ type: 'success', message: json.message });
@@ -104,10 +187,10 @@ export function ProfileClient({ initialUser, initialApplications = [] }) {
       <div className="lg:col-span-4 space-y-5">
         <div className="rounded-3xl bg-white border border-line p-6 text-center space-y-4">
           <Avatar
-            src={user.avatar_url}
-            name={user.name}
+            src={activeAvatarSrc}
+            name={name || user.name}
             size="xl"
-            alt={`Foto profil ${user.name}`}
+            alt={`Foto profil ${name || user.name}`}
             className="mx-auto border-2 border-primary/20"
           />
           <div className="space-y-1.5">
@@ -162,15 +245,88 @@ export function ProfileClient({ initialUser, initialApplications = [] }) {
             error={fieldErrors.name}
           />
 
-          <InputField
-            id="profile-avatar"
-            label="URL Foto Profil (Opsional)"
-            type="url"
-            value={avatarUrl}
-            onChange={(e) => setAvatarUrl(e.target.value)}
-            error={fieldErrors.avatar_url}
-            placeholder="https://example.com/avatar.jpg"
-          />
+          {/* File Upload for Profile Photo */}
+          <div className="space-y-2">
+            <span className="block text-sm font-semibold text-ink">
+              Foto Profil (Opsional)
+            </span>
+            <div className="rounded-2xl border border-line bg-page p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+              <Avatar
+                src={activeAvatarSrc}
+                name={name || user.name}
+                size="lg"
+                className="border border-line-strong"
+              />
+
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <input
+                    ref={fileInputRef}
+                    id="profile-avatar"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleFileChange}
+                    aria-describedby={fieldErrors.avatar ? 'profile-avatar-error' : 'profile-avatar-hint'}
+                    className="sr-only peer"
+                  />
+                  <label
+                    htmlFor="profile-avatar"
+                    className="min-h-11 px-4 rounded-full bg-white text-primary-dark border-2 border-primary-hover hover:bg-primary-light/60 font-semibold text-sm inline-flex items-center gap-2 transition peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary-hover"
+                  >
+                    <Upload className="w-4 h-4" aria-hidden="true" />
+                    <span>{activeAvatarSrc ? 'Ganti Foto' : 'Unggah Foto'}</span>
+                  </label>
+
+                  {selectedFile && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancelSelectedFile}
+                    >
+                      <X className="w-4 h-4" aria-hidden="true" />
+                      <span>Batal Pilih</span>
+                    </Button>
+                  )}
+
+                  {activeAvatarSrc && !selectedFile && (
+                    <Button
+                      type="button"
+                      variant="dangerOutline"
+                      size="sm"
+                      onClick={handleRemoveAvatar}
+                    >
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
+                      <span>Hapus Foto</span>
+                    </Button>
+                  )}
+                </div>
+
+                {selectedFile ? (
+                  <p className="text-sm font-medium text-ink truncate">
+                    File dipilih: {selectedFile.name} (klik Simpan Profil untuk menerapkan)
+                  </p>
+                ) : removeAvatar ? (
+                  <p className="text-sm font-medium text-muted">
+                    Foto profil akan dihapus saat Anda menekan Simpan Profil.
+                  </p>
+                ) : (
+                  <p id="profile-avatar-hint" className="text-sm text-muted">
+                    Unggah gambar berformat JPG, PNG, atau WebP (maksimal 2 MB).
+                  </p>
+                )}
+              </div>
+            </div>
+            {fieldErrors.avatar && (
+              <p
+                id="profile-avatar-error"
+                className="text-sm text-danger-ink font-medium flex items-center gap-1.5"
+              >
+                <AlertCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span>{fieldErrors.avatar}</span>
+              </p>
+            )}
+          </div>
 
           <TextareaField
             id="profile-bio"

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Award, ChevronDown, ChevronLeft, List } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { FontSizeControl } from '@/components/ui/FontSizeControl';
 import { Modal } from '@/components/ui/Modal';
 import { DiscussionThread } from '@/components/learning/DiscussionThread';
 import { MarkAsDoneButton } from '@/components/learning/MarkAsDoneButton';
@@ -80,10 +79,8 @@ export function LearningWorkspaceClient({
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
-            <FontSizeControl className="hidden sm:inline-flex" />
-
-            {!isPreviewMode && (
+          {!isPreviewMode && (
+            <div className="flex items-center gap-3 shrink-0">
               <div className="flex items-center gap-2.5 bg-page border border-line rounded-full px-3.5 py-2">
                 <div className="w-20 sm:w-32 h-2.5 rounded-full bg-line overflow-hidden">
                   <div
@@ -97,8 +94,8 @@ export function LearningWorkspaceClient({
                   {progressPercent}% Selesai
                 </span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </header>
 
