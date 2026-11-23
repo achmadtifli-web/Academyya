@@ -253,3 +253,33 @@ export function validateCategoryPayload(body) {
     },
   };
 }
+
+export function getCourseDeleteGuard(course) {
+  const isPublished = course?.status === 'published';
+  const activeStudents = Number(course?.active_students || 0);
+
+  if (isPublished && activeStudents > 0) {
+    return {
+      blocked: true,
+      shortReason: `Published · ${activeStudents} siswa aktif`,
+      message: `Course tidak dapat dihapus karena masih berstatus published dan diikuti ${activeStudents} siswa aktif.`,
+    };
+  }
+  if (isPublished) {
+    return {
+      blocked: true,
+      shortReason: 'Masih published (ubah ke draft dulu)',
+      message:
+        'Course tidak dapat dihapus karena masih berstatus published. Ubah ke status draft terlebih dahulu.',
+    };
+  }
+  if (activeStudents > 0) {
+    return {
+      blocked: true,
+      shortReason: `${activeStudents} siswa masih aktif`,
+      message: `Course tidak dapat dihapus karena masih diikuti ${activeStudents} siswa aktif.`,
+    };
+  }
+
+  return { blocked: false, shortReason: null, message: null };
+}

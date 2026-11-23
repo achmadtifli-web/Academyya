@@ -67,17 +67,20 @@ export async function DELETE(_request, context) {
       return NextResponse.json({ success: false, error: 'ID course tidak valid.' }, { status: 400 });
     }
 
-    const deleted = await deleteCourseById(courseId);
-    if (!deleted) {
+    const result = await deleteCourseById(courseId);
+    if (result.status === 'NOT_FOUND') {
       return NextResponse.json({ success: false, error: 'Course tidak ditemukan.' }, { status: 404 });
     }
+    if (result.status === 'BLOCKED') {
+      return NextResponse.json({ success: false, error: result.error }, { status: 409 });
+    }
 
-    if (deleted.thumbnail_url) {
-      await deleteStoredCourseThumbnailByUrl(deleted.thumbnail_url);
+    if (result.course.thumbnail_url) {
+      await deleteStoredCourseThumbnailByUrl(result.course.thumbnail_url);
     }
 
     return NextResponse.json(
-      { success: true, data: { deleted }, message: 'Course berhasil dihapus oleh Admin.' },
+      { success: true, data: { deleted: result.course }, message: 'Course berhasil dihapus oleh Admin.' },
       { status: 200 }
     );
   } catch {

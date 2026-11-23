@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
+import { requirePageUser } from '@/lib/pageAuth';
 import { getLearningWorkspaceData } from '@/lib/queries/materials';
 import { AppFrame } from '@/components/layout/AppFrame';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -8,10 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function LearnCourseIndexPage({ params }) {
   const { course: courseSlug } = await params;
-  const user = await getCurrentUser();
-  if (!user) {
-    redirect(`/login?callbackUrl=/learn/${courseSlug}`);
-  }
+  const user = await requirePageUser({ callbackUrl: `/learn/${courseSlug}` });
 
   const workspace = await getLearningWorkspaceData(courseSlug, null, user);
 

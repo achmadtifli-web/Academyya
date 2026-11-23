@@ -1,4 +1,7 @@
+import { redirectAuthenticatedFromAuthPage } from '@/lib/pageAuth';
 import { LoginFormClient } from '@/components/auth/LoginFormClient';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'Masuk Akun',
@@ -7,6 +10,10 @@ export const metadata = {
 export default async function LoginPage({ searchParams }) {
   const params = await searchParams;
   const callbackUrl = typeof params?.callbackUrl === 'string' ? params.callbackUrl : '';
+  const authPath = callbackUrl
+    ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
+    : '/login';
+  await redirectAuthenticatedFromAuthPage(authPath);
 
   return (
     <main className="flex-1 flex items-center justify-center px-4 py-10 sm:py-16 bg-page">

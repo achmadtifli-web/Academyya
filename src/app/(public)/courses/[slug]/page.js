@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { BadgeCheck, BookOpen, Clock, Users } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
 import { getCourseThumbnail } from '@/lib/courseThumbnails';
@@ -25,6 +25,9 @@ export async function generateMetadata({ params }) {
 export default async function CourseDetailPage({ params }) {
   const { slug } = await params;
   const currentUser = await getCurrentUser();
+  if (currentUser?.role === 'admin') redirect('/admin');
+  if (currentUser?.role === 'teacher') redirect('/teacher');
+
   const detail = await getCourseDetailBySlug(slug, currentUser);
 
   if (!detail) {

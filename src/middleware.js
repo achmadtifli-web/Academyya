@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { SESSION_COOKIE_NAME, verifySessionToken } from '@/lib/session';
 
 const PROTECTED_PREFIXES = ['/dashboard', '/learn', '/profile', '/teacher', '/admin'];
-const AUTH_PAGES = ['/login', '/register'];
 
 function isProtectedPath(pathname) {
   if (pathname === '/certificates') return true;
@@ -28,7 +27,16 @@ export async function middleware(request) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (AUTH_PAGES.includes(pathname) && session) {
+  if (pathname === '/' && session) {
+    const target = getDefaultHomeForRole(session.role);
+    return NextResponse.redirect(new URL(target, request.url));
+  }
+
+  if (
+    (pathname === '/courses' || pathname.startsWith('/courses/')) &&
+    session &&
+    (session.role === 'teacher' || session.role === 'admin')
+  ) {
     const target = getDefaultHomeForRole(session.role);
     return NextResponse.redirect(new URL(target, request.url));
   }

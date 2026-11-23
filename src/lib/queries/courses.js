@@ -1,5 +1,5 @@
-import { query } from '@/lib/db';
-import { slugify } from '@/lib/validators';
+import { getClient, query } from '@/lib/db';
+import { getCourseDeleteGuard, slugify } from '@/lib/validators';
 
 export async function getPlatformStats() {
   const res = await query(
@@ -195,7 +195,8 @@ export async function listTeacherCourses(teacherId) {
             cat.name AS category_name,
             COUNT(DISTINCT m.id)::int AS total_materials,
             COALESCE(SUM(m.duration_minutes), 0)::int AS total_duration,
-            COUNT(DISTINCT e.id)::int AS total_students
+            COUNT(DISTINCT e.id)::int AS total_students,
+            COUNT(DISTINCT e.id) FILTER (WHERE e.status = 'active')::int AS active_students
      FROM courses c
      JOIN categories cat ON cat.id = c.category_id
      LEFT JOIN materials m ON m.course_id = c.id
@@ -279,11 +280,53 @@ export async function updateCourseDetails(courseId, fields) {
 }
 
 export async function deleteCourseById(courseId) {
-  const res = await query(
-    `DELETE FROM courses WHERE id = $1 RETURNING id, title, thumbnail_url`,
-    [courseId]
-  );
-  return res.rows[0] || null;
+  const client = await getClient();
+  try {
+    await client.query('BEGIN');
+
+    const courseRes = await client.query(
+      `SELECT id, title, status, thumbnail_url
+       FROM courses
+       WHERE id = $1
+       FOR UPDATE`,
+      [courseId]
+    );
+    const course = courseRes.rows[0];
+    if (!course) {
+      await client.query('COMMIT');
+      return { status: 'NOT_FOUND' };
+    }
+
+    const activeRes = await client.query(
+      `SELECT COUNT(*)::int AS active_students
+       FROM enrollments
+       WHERE course_id = $1 AND status = 'active'`,
+      [courseId]
+    );
+    const activeStudents = activeRes.rows[0]?.active_students || 0;
+
+    const guard = getCourseDeleteGuard({
+      status: course.status,
+      active_students: activeStudents,
+    });
+    if (guard.blocked) {
+      await client.query('COMMIT');
+      return { status: 'BLOCKED', error: guard.message };
+    }
+
+    const delRes = await client.query(
+      `DELETE FROM courses WHERE id = $1 RETURNING id, title, thumbnail_url`,
+      [courseId]
+    );
+
+    await client.query('COMMIT');
+    return { status: 'DELETED', course: delRes.rows[0] };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 export async function listCoursesForAdmin({ q = null, status = null } = {}) {
@@ -295,7 +338,8 @@ export async function listCoursesForAdmin({ q = null, status = null } = {}) {
             u.id AS teacher_id, u.name AS teacher_name, u.email AS teacher_email,
             cat.name AS category_name,
             COUNT(DISTINCT m.id)::int AS total_materials,
-            COUNT(DISTINCT e.id)::int AS total_students
+            COUNT(DISTINCT e.id)::int AS total_students,
+            COUNT(DISTINCT e.id) FILTER (WHERE e.status = 'active')::int AS active_students
      FROM courses c
      JOIN users u ON u.id = c.teacher_id
      JOIN categories cat ON cat.id = c.category_id

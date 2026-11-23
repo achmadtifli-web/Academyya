@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation';
+import { getCurrentUser } from '@/lib/auth';
 import { listCategoriesWithCounts } from '@/lib/queries/categories';
 import { searchCatalogCourses } from '@/lib/queries/courses';
 import { CatalogExplorer } from '@/components/course/CatalogExplorer';
@@ -10,6 +12,10 @@ export const metadata = {
 };
 
 export default async function CatalogPage({ searchParams }) {
+  const user = await getCurrentUser();
+  if (user?.role === 'admin') redirect('/admin');
+  if (user?.role === 'teacher') redirect('/teacher');
+
   const params = await searchParams;
   const q = typeof params?.q === 'string' ? params.q : '';
   const category = typeof params?.category === 'string' ? params.category : '';

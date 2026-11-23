@@ -1,6 +1,5 @@
-import { redirect } from 'next/navigation';
 import { Award, Calendar } from 'lucide-react';
-import { getCurrentUser } from '@/lib/auth';
+import { requirePageUser } from '@/lib/pageAuth';
 import { listStudentCertificates } from '@/lib/queries/certificates';
 import { AppFrame } from '@/components/layout/AppFrame';
 import { Button } from '@/components/ui/Button';
@@ -14,8 +13,7 @@ export const metadata = {
 };
 
 export default async function CertificatesListPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect('/login?callbackUrl=/certificates');
+  const user = await requirePageUser({ callbackUrl: '/certificates' });
 
   const certificates = await listStudentCertificates(user.id);
 

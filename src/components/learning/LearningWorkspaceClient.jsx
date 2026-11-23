@@ -151,9 +151,12 @@ export function LearningWorkspaceClient({
                   <span>Sebelumnya</span>
                 </Button>
               ) : (
-                <Button href={`/courses/${course.slug}`} variant="ghost">
+                <Button
+                  href={isPreviewMode ? previewReturnHref : `/courses/${course.slug}`}
+                  variant="ghost"
+                >
                   <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-                  <span>Detail Course</span>
+                  <span>{isPreviewMode ? 'Kelola Materi' : 'Detail Course'}</span>
                 </Button>
               )}
             </div>

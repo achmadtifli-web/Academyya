@@ -1,4 +1,4 @@
-import { getCurrentUser } from '@/lib/auth';
+import { requirePageUser } from '@/lib/pageAuth';
 import { listTeacherCourses } from '@/lib/queries/courses';
 import { listTeacherStudents } from '@/lib/queries/enrollments';
 import { TeacherStudentsClient } from '@/components/teacher/TeacherStudentsClient';
@@ -10,7 +10,7 @@ export const metadata = {
 };
 
 export default async function TeacherStudentsPage() {
-  const user = await getCurrentUser();
+  const user = await requirePageUser({ callbackUrl: '/teacher/students' });
   const [students, courses] = await Promise.all([
     listTeacherStudents(user.id),
     listTeacherCourses(user.id),

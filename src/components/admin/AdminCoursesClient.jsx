@@ -2,14 +2,17 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { BookOpen, ExternalLink, EyeOff, Globe, Layers, Search, Trash2 } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmModal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/ToastContext';
+import { getCourseDeleteGuard } from '@/lib/validators';
 
 export function AdminCoursesClient({ initialCourses = [] }) {
+  const router = useRouter();
   const { showToast } = useToast();
   const [courses, setCourses] = useState(initialCourses);
   const [q, setQ] = useState('');
@@ -45,6 +48,7 @@ export function AdminCoursesClient({ initialCourses = [] }) {
         prev.map((c) => (c.id === course.id ? { ...c, status: nextStatus } : c))
       );
       showToast({ type: 'success', message: json.message });
+      router.refresh();
     } catch (err) {
       showToast({ type: 'error', message: err.message || 'Gagal memperbarui status course.' });
     } finally {
@@ -66,8 +70,11 @@ export function AdminCoursesClient({ initialCourses = [] }) {
       setCourses((prev) => prev.filter((c) => c.id !== deleteTarget.id));
       showToast({ type: 'success', message: json.message });
       setDeleteTarget(null);
+      router.refresh();
     } catch (err) {
       showToast({ type: 'error', message: err.message || 'Gagal menghapus course.' });
+      setDeleteTarget(null);
+      router.refresh();
     } finally {
       setBusyId(null);
     }
@@ -128,121 +135,147 @@ export function AdminCoursesClient({ initialCourses = [] }) {
             <table className="w-full text-left border-collapse">
               <thead className="bg-page border-b border-line text-sm font-semibold text-muted">
                 <tr>
-                  <th className="py-4 px-5">Course</th>
-                  <th className="py-4 px-5">Pengajar</th>
-                  <th className="py-4 px-5">Status</th>
-                  <th className="py-4 px-5">Siswa</th>
-                  <th className="py-4 px-5 text-right">Moderasi</th>
+                  <th scope="col" className="py-4 px-5">Course</th>
+                  <th scope="col" className="py-4 px-5">Pengajar</th>
+                  <th scope="col" className="py-4 px-5">Status</th>
+                  <th scope="col" className="py-4 px-5">Siswa</th>
+                  <th scope="col" className="py-4 px-5 text-right">Moderasi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {visibleCourses.map((course) => (
-                  <tr key={course.id} className="hover:bg-page/50">
-                    <td className="py-4 px-5">
-                      <Link
-                        href={`/courses/${course.slug}`}
-                        className="min-h-11 font-semibold text-ink hover:text-primary-hover inline-flex items-center gap-1.5"
-                      >
-                        <span>{course.title}</span>
-                        <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
-                      </Link>
-                      <p className="text-sm text-muted mt-0.5">
-                        {course.category_name} · {course.total_materials} materi
-                      </p>
-                    </td>
-                    <td className="py-4 px-5 text-sm text-ink">{course.teacher_name}</td>
-                    <td className="py-4 px-5">
-                      <StatusBadge status={course.status} />
-                    </td>
-                    <td className="py-4 px-5 text-sm font-semibold text-ink">
-                      {course.total_students}
-                    </td>
-                    <td className="py-4 px-5">
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        <Button
-                          href={`/admin/courses/${course.id}/materials`}
-                          variant="primary"
-                          size="sm"
+                {visibleCourses.map((course) => {
+                  const guard = getCourseDeleteGuard(course);
+                  const noteId = `admin-course-delete-note-${course.id}`;
+                  return (
+                    <tr key={course.id} className="hover:bg-page/50">
+                      <td className="py-4 px-5">
+                        <Link
+                          href={`/courses/${course.slug}`}
+                          className="min-h-11 font-semibold text-ink hover:text-primary-hover inline-flex items-center gap-1.5"
                         >
-                          <Layers className="w-4 h-4" aria-hidden="true" />
-                          <span>Kelola Materi</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={busyId === course.id}
-                          onClick={() => handleToggleStatus(course)}
-                        >
-                          {course.status === 'published' ? (
-                            <>
-                              <EyeOff className="w-4 h-4" aria-hidden="true" />
-                              <span>Turunkan</span>
-                            </>
-                          ) : (
-                            <>
-                              <Globe className="w-4 h-4" aria-hidden="true" />
-                              <span>Publikasikan</span>
-                            </>
+                          <span>{course.title}</span>
+                          <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
+                        </Link>
+                        <p className="text-sm text-muted mt-0.5">
+                          {course.category_name} · {course.total_materials} materi
+                        </p>
+                      </td>
+                      <td className="py-4 px-5 text-sm text-ink">{course.teacher_name}</td>
+                      <td className="py-4 px-5">
+                        <StatusBadge status={course.status} />
+                      </td>
+                      <td className="py-4 px-5 text-sm">
+                        <p className="font-semibold text-ink">{course.total_students}</p>
+                        {course.active_students > 0 && (
+                          <p className="text-muted">{course.active_students} aktif</p>
+                        )}
+                      </td>
+                      <td className="py-4 px-5">
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            <Button
+                              href={`/admin/courses/${course.id}/materials`}
+                              variant="primary"
+                              size="sm"
+                            >
+                              <Layers className="w-4 h-4" aria-hidden="true" />
+                              <span>Kelola Materi</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={busyId === course.id}
+                              onClick={() => handleToggleStatus(course)}
+                            >
+                              {course.status === 'published' ? (
+                                <>
+                                  <EyeOff className="w-4 h-4" aria-hidden="true" />
+                                  <span>Turunkan</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Globe className="w-4 h-4" aria-hidden="true" />
+                                  <span>Publikasikan</span>
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              variant="dangerOutline"
+                              size="sm"
+                              disabled={guard.blocked || busyId === course.id}
+                              aria-describedby={guard.blocked ? noteId : undefined}
+                              onClick={() => setDeleteTarget(course)}
+                            >
+                              <Trash2 className="w-4 h-4" aria-hidden="true" />
+                              <span>Hapus</span>
+                            </Button>
+                          </div>
+                          {guard.blocked && (
+                            <span id={noteId} className="text-sm text-muted text-right">
+                              {guard.shortReason}
+                            </span>
                           )}
-                        </Button>
-                        <Button
-                          variant="dangerOutline"
-                          size="sm"
-                          disabled={busyId === course.id}
-                          onClick={() => setDeleteTarget(course)}
-                        >
-                          <Trash2 className="w-4 h-4" aria-hidden="true" />
-                          <span>Hapus</span>
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
           <div className="md:hidden space-y-3">
-            {visibleCourses.map((course) => (
-              <div key={course.id} className="rounded-3xl bg-white border border-line p-5 space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <Link href={`/courses/${course.slug}`} className="min-h-11 inline-flex items-center font-semibold text-ink">
-                    {course.title}
-                  </Link>
-                  <StatusBadge status={course.status} />
+            {visibleCourses.map((course) => {
+              const guard = getCourseDeleteGuard(course);
+              const noteId = `mobile-admin-course-delete-note-${course.id}`;
+              return (
+                <div key={course.id} className="rounded-3xl bg-white border border-line p-5 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <Link href={`/courses/${course.slug}`} className="min-h-11 inline-flex items-center font-semibold text-ink">
+                      {course.title}
+                    </Link>
+                    <StatusBadge status={course.status} />
+                  </div>
+                  <p className="text-sm text-muted">
+                    {course.teacher_name} · {course.total_materials} materi · {course.total_students} siswa
+                    {course.active_students > 0 ? ` (${course.active_students} aktif)` : ''}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <Button
+                      href={`/admin/courses/${course.id}/materials`}
+                      variant="primary"
+                      size="sm"
+                      className="col-span-2"
+                    >
+                      <Layers className="w-4 h-4" aria-hidden="true" />
+                      <span>Kelola Materi</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={busyId === course.id}
+                      onClick={() => handleToggleStatus(course)}
+                    >
+                      {course.status === 'published' ? 'Turunkan' : 'Publikasikan'}
+                    </Button>
+                    <Button
+                      variant="dangerOutline"
+                      size="sm"
+                      disabled={guard.blocked || busyId === course.id}
+                      aria-describedby={guard.blocked ? noteId : undefined}
+                      onClick={() => setDeleteTarget(course)}
+                    >
+                      Hapus
+                    </Button>
+                  </div>
+                  {guard.blocked && (
+                    <p id={noteId} className="text-sm text-muted">
+                      Tidak dapat dihapus: {guard.shortReason}
+                    </p>
+                  )}
                 </div>
-                <p className="text-sm text-muted">
-                  {course.teacher_name} · {course.total_materials} materi · {course.total_students} siswa
-                </p>
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <Button
-                    href={`/admin/courses/${course.id}/materials`}
-                    variant="primary"
-                    size="sm"
-                    className="col-span-2"
-                  >
-                    <Layers className="w-4 h-4" aria-hidden="true" />
-                    <span>Kelola Materi</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={busyId === course.id}
-                    onClick={() => handleToggleStatus(course)}
-                  >
-                    {course.status === 'published' ? 'Turunkan' : 'Publikasikan'}
-                  </Button>
-                  <Button
-                    variant="dangerOutline"
-                    size="sm"
-                    disabled={busyId === course.id}
-                    onClick={() => setDeleteTarget(course)}
-                  >
-                    Hapus
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
@@ -254,7 +287,7 @@ export function AdminCoursesClient({ initialCourses = [] }) {
         title="Hapus Course Secara Permanen?"
         message={
           deleteTarget
-            ? `Course "${deleteTarget.title}" beserta seluruh materi, progres siswa, dan diskusinya akan dihapus permanen.`
+            ? `Course "${deleteTarget.title}" beserta seluruh materi, riwayat belajar, dan diskusinya akan dihapus permanen.`
             : ''
         }
         confirmLabel="Ya, Hapus Course"

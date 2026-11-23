@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
+import { requirePageUser } from '@/lib/pageAuth';
 import { getCourseById } from '@/lib/queries/courses';
 import { listMaterialsForCourse } from '@/lib/queries/materials';
 import { CourseMaterialsView } from '@/components/course/CourseMaterialsView';
@@ -16,7 +16,10 @@ export default async function ManageMaterialsPage({ params }) {
   const courseId = parsePositiveInt(id);
   if (!courseId) notFound();
 
-  const [user, course] = await Promise.all([getCurrentUser(), getCourseById(courseId)]);
+  const [user, course] = await Promise.all([
+    requirePageUser({ callbackUrl: `/teacher/courses/${courseId}/materials` }),
+    getCourseById(courseId),
+  ]);
   if (!course) notFound();
   if (Number(course.teacher_id) !== Number(user.id)) {
     redirect('/403');

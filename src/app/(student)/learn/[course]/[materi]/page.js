@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
+import { requirePageUser } from '@/lib/pageAuth';
 import { getLearningWorkspaceData } from '@/lib/queries/materials';
 import { LearningWorkspaceClient } from '@/components/learning/LearningWorkspaceClient';
 import { parsePositiveInt } from '@/lib/validators';
@@ -21,10 +22,9 @@ export async function generateMetadata({ params }) {
 
 export default async function LearnMaterialPage({ params }) {
   const { course: courseSlug, materi } = await params;
-  const user = await getCurrentUser();
-  if (!user) {
-    redirect(`/login?callbackUrl=/learn/${courseSlug}/${materi}`);
-  }
+  const user = await requirePageUser({
+    callbackUrl: `/learn/${courseSlug}/${materi}`,
+  });
 
   const materialId = parsePositiveInt(materi);
   if (!materialId) {

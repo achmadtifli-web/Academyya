@@ -1,4 +1,7 @@
+import { redirectAuthenticatedFromAuthPage } from '@/lib/pageAuth';
 import { RegisterFormClient } from '@/components/auth/RegisterFormClient';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'Daftar Akun',
@@ -8,6 +11,14 @@ export default async function RegisterPage({ searchParams }) {
   const params = await searchParams;
   const initialType = params?.type === 'teacher' ? 'teacher' : 'student';
   const callbackUrl = typeof params?.callbackUrl === 'string' ? params.callbackUrl : '';
+
+  const query = new URLSearchParams();
+  if (params?.type === 'teacher') query.set('type', 'teacher');
+  if (callbackUrl) query.set('callbackUrl', callbackUrl);
+  const queryString = query.toString();
+  await redirectAuthenticatedFromAuthPage(
+    queryString ? `/register?${queryString}` : '/register'
+  );
 
   return (
     <main className="flex-1 flex items-center justify-center px-4 py-10 sm:py-16 bg-page">

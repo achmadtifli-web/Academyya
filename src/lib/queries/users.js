@@ -29,7 +29,15 @@ export async function fetchFreshUserSessionProfile(userId) {
          SELECT COUNT(*)::int
          FROM notifications n
          WHERE n.user_id = u.id AND n.is_read = FALSE
-       ) AS unread_notifications
+       ) AS unread_notifications,
+       CASE
+         WHEN u.role = 'admin' THEN (
+           SELECT COUNT(*)::int
+           FROM teacher_applications
+           WHERE status = 'pending'
+         )
+         ELSE 0
+       END AS pending_teacher_requests
      FROM users u
      WHERE u.id = $1`,
     [userId]
@@ -179,7 +187,15 @@ export async function listAdminUsers({ q = null, role = null } = {}) {
   const res = await query(
     `SELECT u.id, u.name, u.email, u.role, u.avatar_url, u.created_at,
             COUNT(DISTINCT c.id)::int AS courses_count,
-            COUNT(DISTINCT e.id)::int AS enrollments_count
+            COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'published')::int AS published_courses_count,
+            COUNT(DISTINCT e.id)::int AS enrollments_count,
+            COUNT(DISTINCT e.id) FILTER (WHERE e.status = 'active')::int AS active_enrollments_count,
+            (
+              SELECT COUNT(*)::int
+              FROM enrollments ce
+              JOIN courses cc ON cc.id = ce.course_id
+              WHERE cc.teacher_id = u.id AND ce.status = 'active'
+            ) AS active_course_enrollments_count
      FROM users u
      LEFT JOIN courses c ON c.teacher_id = u.id
      LEFT JOIN enrollments e ON e.student_id = u.id
@@ -193,11 +209,66 @@ export async function listAdminUsers({ q = null, role = null } = {}) {
 }
 
 export async function deleteUserByAdmin(targetUserId) {
-  const res = await query(
-    `DELETE FROM users WHERE id = $1 RETURNING id, name, email`,
-    [targetUserId]
-  );
-  return res.rows[0] || null;
+  const client = await getClient();
+  try {
+    await client.query('BEGIN');
+
+    const userRes = await client.query(
+      `SELECT id, name, email, role, avatar_url
+       FROM users
+       WHERE id = $1
+       FOR UPDATE`,
+      [targetUserId]
+    );
+    const targetUser = userRes.rows[0];
+    if (!targetUser) {
+      await client.query('COMMIT');
+      return { status: 'NOT_FOUND' };
+    }
+
+    const depRes = await client.query(
+      `SELECT
+         (SELECT COUNT(*)::int FROM enrollments WHERE student_id = $1 AND status = 'active') AS active_enrollments,
+         (SELECT COUNT(*)::int FROM courses WHERE teacher_id = $1 AND status = 'published') AS published_courses,
+         (
+           SELECT COUNT(*)::int
+           FROM enrollments e
+           JOIN courses c ON c.id = e.course_id
+           WHERE c.teacher_id = $1 AND e.status = 'active'
+         ) AS active_course_enrollments`,
+      [targetUserId]
+    );
+    const deps = depRes.rows[0];
+
+    if (deps.active_enrollments > 0) {
+      const err = new Error('USER_HAS_ACTIVE_ENROLLMENTS');
+      err.code = 'USER_HAS_ACTIVE_ENROLLMENTS';
+      err.role = targetUser.role;
+      err.count = deps.active_enrollments;
+      throw err;
+    }
+
+    if (deps.published_courses > 0 || deps.active_course_enrollments > 0) {
+      const err = new Error('TEACHER_HAS_ACTIVE_COURSES');
+      err.code = 'TEACHER_HAS_ACTIVE_COURSES';
+      err.publishedCourses = deps.published_courses;
+      err.activeCourseEnrollments = deps.active_course_enrollments;
+      throw err;
+    }
+
+    const delRes = await client.query(
+      `DELETE FROM users WHERE id = $1 RETURNING id, name, email, role, avatar_url`,
+      [targetUserId]
+    );
+
+    await client.query('COMMIT');
+    return { status: 'DELETED', user: delRes.rows[0] };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 export async function getAdminStats() {

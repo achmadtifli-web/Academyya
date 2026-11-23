@@ -1,12 +1,8 @@
-import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
+import { requirePageUser } from '@/lib/pageAuth';
 
 export const dynamic = 'force-dynamic';
 
 export default async function StudentLayout({ children }) {
-  const user = await getCurrentUser();
-  if (!user) {
-    redirect('/login');
-  }
+  await requirePageUser();
   return children;
 }

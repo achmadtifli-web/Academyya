@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
@@ -10,6 +11,12 @@ import {
 import { fetchFreshUserSessionProfile } from '@/lib/queries/users';
 
 export { SESSION_COOKIE_NAME, signSessionToken, verifySessionToken };
+
+export function getDefaultHomeForRole(role) {
+  if (role === 'admin') return '/admin';
+  if (role === 'teacher') return '/teacher';
+  return '/dashboard';
+}
 
 export async function hashPassword(plainPassword) {
   return bcrypt.hash(plainPassword, 10);
@@ -43,7 +50,7 @@ export function clearSessionCookie(response) {
  * Resolve current authenticated user directly from PostgreSQL so role updates
  * (e.g., Teacher approval) take effect immediately without stale JWT claims.
  */
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async function getCurrentUser() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   const session = await verifySessionToken(token);
@@ -55,7 +62,7 @@ export async function getCurrentUser() {
   } catch {
     return null;
   }
-}
+});
 
 export async function requireApiAuth() {
   const user = await getCurrentUser();

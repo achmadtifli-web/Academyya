@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
+import { requirePageUser } from '@/lib/pageAuth';
 import { getUserTeacherApplications } from '@/lib/queries/users';
 import { AppFrame } from '@/components/layout/AppFrame';
 import { ProfileClient } from '@/components/student/ProfileClient';
@@ -12,8 +11,7 @@ export const metadata = {
 };
 
 export default async function ProfilePage() {
-  const user = await getCurrentUser();
-  if (!user) redirect('/login?callbackUrl=/profile');
+  const user = await requirePageUser({ callbackUrl: '/profile' });
 
   const applications = await getUserTeacherApplications(user.id);
 

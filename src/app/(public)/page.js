@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import {
   Award,
   BookOpen,
@@ -7,7 +8,6 @@ import {
 } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
 import { getPlatformStats, listPopularCourses } from '@/lib/queries/courses';
-import { listStudentEnrollments } from '@/lib/queries/enrollments';
 import { CourseCard } from '@/components/course/CourseCard';
 import { FaqSection } from '@/components/home/FaqSection';
 import { HeroVisual } from '@/components/layout/HeroVisual';
@@ -53,18 +53,19 @@ const HOW_IT_WORKS_STEPS = [
 ];
 
 export default async function HomePage() {
-  const [user, stats, popularCourses] = await Promise.all([
-    getCurrentUser(),
+  const user = await getCurrentUser();
+  if (user) {
+    if (user.role === 'admin') redirect('/admin');
+    if (user.role === 'teacher') redirect('/teacher');
+    redirect('/dashboard');
+  }
+
+  const [stats, popularCourses] = await Promise.all([
     getPlatformStats(),
     listPopularCourses(4),
   ]);
 
-  let activeEnrollment = null;
-  if (user && user.role === 'student') {
-    const enrollments = await listStudentEnrollments(user.id);
-    activeEnrollment =
-      enrollments.find((e) => e.enrollment_status === 'active') || enrollments[0] || null;
-  }
+  const activeEnrollment = null;
 
   return (
     <main className="flex-1 min-w-0 w-full">

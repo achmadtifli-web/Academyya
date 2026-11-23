@@ -1,4 +1,4 @@
-import { getCurrentUser } from '@/lib/auth';
+import { requirePageUser } from '@/lib/pageAuth';
 import { listAdminUsers } from '@/lib/queries/users';
 import { AdminUsersClient } from '@/components/admin/AdminUsersClient';
 
@@ -10,7 +10,7 @@ export const metadata = {
 
 export default async function AdminUsersPage() {
   const [currentUser, users] = await Promise.all([
-    getCurrentUser(),
+    requirePageUser({ callbackUrl: '/admin/users', roles: ['admin'] }),
     listAdminUsers(),
   ]);
 

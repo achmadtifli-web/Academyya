@@ -221,12 +221,19 @@ export async function DELETE(_request, context) {
       );
     }
 
-    const deleted = await deleteCourseById(courseId);
-    if (deleted?.thumbnail_url) {
-      await deleteStoredCourseThumbnailByUrl(deleted.thumbnail_url);
+    const result = await deleteCourseById(courseId);
+    if (result.status === 'NOT_FOUND') {
+      return NextResponse.json({ success: false, error: 'Course tidak ditemukan.' }, { status: 404 });
+    }
+    if (result.status === 'BLOCKED') {
+      return NextResponse.json({ success: false, error: result.error }, { status: 409 });
+    }
+
+    if (result.course.thumbnail_url) {
+      await deleteStoredCourseThumbnailByUrl(result.course.thumbnail_url);
     }
     return NextResponse.json(
-      { success: true, data: { deleted }, message: 'Course berhasil dihapus.' },
+      { success: true, data: { deleted: result.course }, message: 'Course berhasil dihapus.' },
       { status: 200 }
     );
   } catch {

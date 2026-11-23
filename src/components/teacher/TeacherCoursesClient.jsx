@@ -2,14 +2,17 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { BookOpen, Eye, Layers, Pencil, Plus, Trash2 } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmModal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/ToastContext';
+import { getCourseDeleteGuard } from '@/lib/validators';
 
 export function TeacherCoursesClient({ initialCourses = [] }) {
+  const router = useRouter();
   const { showToast } = useToast();
   const [courses, setCourses] = useState(initialCourses);
   const [busyId, setBusyId] = useState(null);
@@ -33,6 +36,7 @@ export function TeacherCoursesClient({ initialCourses = [] }) {
         prev.map((c) => (c.id === course.id ? { ...c, status: nextStatus } : c))
       );
       showToast({ type: 'success', message: json.message });
+      router.refresh();
     } catch (err) {
       showToast({ type: 'error', message: err.message || 'Gagal memperbarui status course.' });
     } finally {
@@ -55,8 +59,11 @@ export function TeacherCoursesClient({ initialCourses = [] }) {
       setCourses((prev) => prev.filter((c) => c.id !== deleteTarget.id));
       showToast({ type: 'success', message: json.message });
       setDeleteTarget(null);
+      router.refresh();
     } catch (err) {
       showToast({ type: 'error', message: err.message || 'Gagal menghapus course.' });
+      setDeleteTarget(null);
+      router.refresh();
     } finally {
       setBusyId(null);
     }
@@ -87,6 +94,8 @@ export function TeacherCoursesClient({ initialCourses = [] }) {
           {courses.map((course) => {
             const isPublished = course.status === 'published';
             const isBusy = busyId === course.id;
+            const guard = getCourseDeleteGuard(course);
+            const noteId = `teacher-course-delete-note-${course.id}`;
 
             return (
               <article
@@ -110,7 +119,13 @@ export function TeacherCoursesClient({ initialCourses = [] }) {
                   <p className="text-sm text-muted">
                     {course.total_materials} Materi · {course.total_duration} menit ·{' '}
                     {course.total_students} Siswa terdaftar
+                    {course.active_students > 0 ? ` (${course.active_students} aktif)` : ''}
                   </p>
+                  {guard.blocked && (
+                    <p id={noteId} className="text-sm text-muted">
+                      Tidak dapat dihapus: {guard.shortReason}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-end gap-4 shrink-0">
@@ -172,8 +187,9 @@ export function TeacherCoursesClient({ initialCourses = [] }) {
                     <button
                       type="button"
                       aria-label={`Hapus ${course.title}`}
-                      title="Hapus Course"
-                      disabled={isBusy}
+                      aria-describedby={guard.blocked ? noteId : undefined}
+                      title={guard.blocked ? guard.shortReason : 'Hapus Course'}
+                      disabled={isBusy || guard.blocked}
                       onClick={() => setDeleteTarget(course)}
                       className="w-11 h-11 rounded-2xl bg-white text-danger-ink border-2 border-danger hover:bg-danger-light disabled:opacity-50 inline-flex items-center justify-center transition"
                     >

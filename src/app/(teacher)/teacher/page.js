@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
-import { getCurrentUser } from '@/lib/auth';
+import { requirePageUser } from '@/lib/pageAuth';
 import { getTeacherDashboardSummary, listTeacherCourses } from '@/lib/queries/courses';
 import { StatCard } from '@/components/admin/StatCard';
 import { StatusBadge } from '@/components/ui/Badge';
@@ -14,7 +14,7 @@ export const metadata = {
 };
 
 export default async function TeacherDashboardPage() {
-  const user = await getCurrentUser();
+  const user = await requirePageUser({ callbackUrl: '/teacher' });
   const [summary, courses] = await Promise.all([
     getTeacherDashboardSummary(user.id),
     listTeacherCourses(user.id),
