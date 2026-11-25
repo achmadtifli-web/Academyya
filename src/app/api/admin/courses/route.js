@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireApiRole } from '@/lib/auth';
+import { handleCreateCourseMutation } from '@/lib/courseMutations';
 import { listCoursesForAdmin } from '@/lib/queries/courses';
 
 export async function GET(request) {
@@ -17,4 +18,11 @@ export async function GET(request) {
       { status: 500 }
     );
   }
+}
+
+export async function POST(request) {
+  const { user, errorResponse } = await requireApiRole(['admin']);
+  if (errorResponse) return errorResponse;
+
+  return handleCreateCourseMutation(request, user, { allowSelectTeacher: true });
 }

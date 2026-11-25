@@ -1,9 +1,9 @@
 import { validateCoursePayload } from '@/lib/validators';
 
 /**
- * Parse a teacher course creation/update request supporting both multipart/form-data and JSON.
+ * Parse a course creation/update request supporting both multipart/form-data and JSON.
  */
-export async function parseCourseRequest(request) {
+export async function parseCourseRequest(request, options = {}) {
   const contentType = request.headers.get('content-type') || '';
 
   if (contentType.includes('multipart/form-data')) {
@@ -23,13 +23,16 @@ export async function parseCourseRequest(request) {
     const body = {
       title: formData.get('title'),
       category_id: formData.get('category_id'),
+      teacher_id: formData.get('teacher_id'),
+      start_date: formData.get('start_date'),
+      end_date: formData.get('end_date'),
       level: formData.get('level'),
       description: formData.get('description'),
       status: formData.get('status'),
       thumbnail_url: hasThumbnailUrlField ? formData.get('thumbnail_url') : '',
     };
 
-    const validation = validateCoursePayload(body);
+    const validation = validateCoursePayload(body, options);
     return {
       ok: true,
       validation,
@@ -46,7 +49,7 @@ export async function parseCourseRequest(request) {
   }
 
   const hasThumbnailUrlField = Object.prototype.hasOwnProperty.call(body, 'thumbnail_url');
-  const validation = validateCoursePayload(body);
+  const validation = validateCoursePayload(body, options);
   return {
     ok: true,
     validation,

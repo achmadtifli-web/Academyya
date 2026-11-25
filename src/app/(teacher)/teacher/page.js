@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
 import { requirePageUser } from '@/lib/pageAuth';
 import { getTeacherDashboardSummary, listTeacherCourses } from '@/lib/queries/courses';
 import { StatCard } from '@/components/admin/StatCard';
@@ -22,20 +21,13 @@ export default async function TeacherDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="font-heading text-3xl font-bold text-ink">
-            Halo, <HighlightUnderline>{user.name}</HighlightUnderline>
-          </h1>
-          <p className="text-base text-muted">
-            Kelola course, susun materi pembelajaran, dan pantau perkembangan siswa Anda.
-          </p>
-        </div>
-
-        <Button href="/teacher/courses/new" variant="primary">
-          <Plus className="w-5 h-5" aria-hidden="true" />
-          <span>Buat Course Baru</span>
-        </Button>
+      <div className="space-y-1">
+        <h1 className="font-heading text-3xl font-bold text-ink">
+          Halo, <HighlightUnderline>{user.name}</HighlightUnderline>
+        </h1>
+        <p className="text-base text-muted">
+          Kelola course, susun materi pembelajaran, dan pantau perkembangan siswa Anda.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -62,18 +54,19 @@ export default async function TeacherDashboardPage() {
       </div>
 
       <section className="rounded-3xl bg-white border border-line p-6 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        
+        <div>
           <h2 className="font-heading text-xl font-semibold text-ink">
             Course Terbaru Anda
           </h2>
-          <Button href="/teacher/courses" variant="outline" size="sm">
-            Lihat Semua Course
-          </Button>
         </div>
-
         {courses.length === 0 ? (
           <p className="text-base text-muted py-4">
-            Anda belum memiliki course. Klik &ldquo;Buat Course Baru&rdquo; untuk memulai.
+            Anda belum memiliki course. Buka halaman{' '}
+            <Link href="/teacher/courses" className="font-semibold text-primary-hover hover:underline">
+              Kelola Course
+            </Link>{' '}
+            untuk membuat course pertama Anda.
           </p>
         ) : (
           <div className="divide-y divide-line">
@@ -109,6 +102,11 @@ export default async function TeacherDashboardPage() {
             ))}
           </div>
         )}
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Button href="/teacher/courses" variant="outline" size="sm">
+            Lihat Semua Course
+          </Button>
+        </div>
       </section>
     </div>
   );

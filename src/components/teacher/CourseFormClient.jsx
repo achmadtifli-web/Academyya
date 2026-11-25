@@ -15,24 +15,41 @@ const MAX_COURSE_THUMBNAIL_BYTES = 5 * 1024 * 1024;
 
 const FIELD_INPUT_IDS = {
   title: 'course-title',
+  teacher_id: 'course-teacher',
   category_id: 'course-category',
   level: 'course-level',
+  start_date: 'course-start-date',
+  end_date: 'course-end-date',
   thumbnail: 'course-thumbnail',
   thumbnail_url: 'course-thumbnail',
   description: 'course-description',
 };
 
-export function CourseFormClient({ categories = [], initialCourse = null }) {
+export function CourseFormClient({
+  categories = [],
+  initialCourse = null,
+  isAdmin = false,
+  teachers = [],
+  teacherName = '',
+  cancelHref = '/teacher/courses',
+}) {
   const router = useRouter();
   const { showToast } = useToast();
   const fileInputRef = useRef(null);
   const isEditing = Boolean(initialCourse);
 
   const [title, setTitle] = useState(initialCourse?.title || '');
+  const [teacherId, setTeacherId] = useState(
+    initialCourse?.teacher_id
+      ? String(initialCourse.teacher_id)
+      : String(teachers[0]?.id || '')
+  );
   const [categoryId, setCategoryId] = useState(
     initialCourse?.category_id ? String(initialCourse.category_id) : String(categories[0]?.id || '')
   );
   const [level, setLevel] = useState(initialCourse?.level || 'pemula');
+  const [startDate, setStartDate] = useState(initialCourse?.start_date || '');
+  const [endDate, setEndDate] = useState(initialCourse?.end_date || '');
   const [savedThumbnailUrl] = useState(initialCourse?.thumbnail_url || '');
   const [selectedFile, setSelectedFile] = useState(null);
   const [localPreviewUrl, setLocalPreviewUrl] = useState('');
@@ -145,15 +162,24 @@ export function CourseFormClient({ categories = [], initialCourse = null }) {
     setFieldErrors({});
 
     try {
-      const url = isEditing
+      const url = isAdmin
+        ? isEditing
+          ? `/api/admin/courses/${initialCourse.id}`
+          : '/api/admin/courses'
+        : isEditing
         ? `/api/teacher/courses/${initialCourse.id}`
         : '/api/teacher/courses';
       const method = isEditing ? 'PUT' : 'POST';
 
       const formData = new FormData();
       formData.append('title', title);
+      if (isAdmin) {
+        formData.append('teacher_id', String(teacherId));
+      }
       formData.append('category_id', String(categoryId));
       formData.append('level', level);
+      formData.append('start_date', startDate);
+      formData.append('end_date', endDate);
       formData.append('description', description);
       formData.append('removeThumbnail', removeThumbnail ? 'true' : 'false');
       if (selectedFile) {
@@ -175,7 +201,9 @@ export function CourseFormClient({ categories = [], initialCourse = null }) {
       }
 
       showToast({ type: 'success', message: json.message });
-      if (isEditing) {
+      if (isAdmin) {
+        router.push('/admin/courses');
+      } else if (isEditing) {
         router.push('/teacher/courses');
       } else {
         router.push(`/teacher/courses/${json.data.course.id}/materials`);
@@ -208,6 +236,42 @@ export function CourseFormClient({ categories = [], initialCourse = null }) {
         error={fieldErrors.title}
         placeholder="Contoh: Dasar Pemrograman Web Modern"
       />
+
+      {isAdmin ? (
+        <SelectField
+          id="course-teacher"
+          name="teacher_id"
+          label="Nama Teacher"
+          required
+          value={teacherId}
+          onChange={(e) => {
+            setTeacherId(e.target.value);
+            clearFieldError('teacher_id');
+          }}
+          error={fieldErrors.teacher_id}
+          disabled={teachers.length === 0}
+        >
+          {teachers.length === 0 ? (
+            <option value="">Belum ada pengajar terdaftar</option>
+          ) : (
+            teachers.map((teacher) => (
+              <option key={teacher.id} value={teacher.id}>
+                {teacher.name} ({teacher.email})
+              </option>
+            ))
+          )}
+        </SelectField>
+      ) : (
+        <InputField
+          id="course-teacher"
+          name="teacher_name"
+          label="Nama Teacher"
+          value={teacherName}
+          readOnly
+          disabled
+          hint="Terisi otomatis sesuai akun pengajar Anda."
+        />
+      )}
 
       <div className="grid sm:grid-cols-2 gap-4">
         <SelectField
@@ -246,6 +310,46 @@ export function CourseFormClient({ categories = [], initialCourse = null }) {
           <option value="lanjut">Lanjut</option>
         </SelectField>
       </div>
+
+      <fieldset className="rounded-2xl border border-line bg-page/50 p-4 space-y-3">
+        <legend className="px-2 text-sm font-semibold text-ink">
+          Rentang Waktu Kelas (Opsional)
+        </legend>
+        <p className="text-xs text-muted">
+          Kosongkan tanggal mulai dan tanggal selesai jika kelas bersifat lifetime access
+          (tanpa batas waktu). Jika tanggal mulai diisi di masa depan, siswa baru dapat
+          mengikuti course saat tanggal tersebut tiba.
+        </p>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <InputField
+            id="course-start-date"
+            name="start_date"
+            type="date"
+            label="Tanggal Mulai"
+            value={startDate}
+            onChange={(e) => {
+              setStartDate(e.target.value);
+              clearFieldError('start_date');
+              clearFieldError('end_date');
+            }}
+            error={fieldErrors.start_date}
+          />
+          <InputField
+            id="course-end-date"
+            name="end_date"
+            type="date"
+            label="Tanggal Selesai"
+            min={startDate || undefined}
+            value={endDate}
+            onChange={(e) => {
+              setEndDate(e.target.value);
+              clearFieldError('end_date');
+              clearFieldError('start_date');
+            }}
+            error={fieldErrors.end_date}
+          />
+        </div>
+      </fieldset>
 
       {/* File Upload & 16:9 Catalog Card Preview */}
       <fieldset className="space-y-2">
@@ -378,16 +482,23 @@ export function CourseFormClient({ categories = [], initialCourse = null }) {
       />
 
       <div className="pt-2 flex flex-wrap items-center justify-end gap-3">
-        <Button href="/teacher/courses" variant="outline">
+        <Button href={cancelHref} variant="outline">
           Batal
         </Button>
-        <Button type="submit" variant="primary" loading={saving}>
+        <Button
+          type="submit"
+          variant="primary"
+          loading={saving}
+          disabled={isAdmin && teachers.length === 0}
+        >
           <Save className="w-4 h-4" aria-hidden="true" />
           <span>
             {saving
               ? 'Menyimpan...'
               : isEditing
               ? 'Simpan Perubahan'
+              : isAdmin
+              ? 'Simpan Course'
               : 'Buat Draft & Tambah Materi'}
           </span>
         </Button>

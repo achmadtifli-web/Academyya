@@ -30,21 +30,25 @@ export default async function EditTeacherCoursePage({ params }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <Button href="/teacher/courses" variant="outline" size="sm">
+        <Button href="/teacher/courses" variant="ghost" size="sm" className="-ml-2 mb-3">
           <ChevronLeft className="w-4 h-4" aria-hidden="true" />
           <span>Kembali ke Daftar Course</span>
         </Button>
-      </div>
-      <div className="space-y-1">
-        <h1 className="font-heading text-3xl font-bold text-ink">Edit Informasi Course</h1>
-        <p className="text-base text-muted">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight">
+          Edit Informasi Course
+        </h1>
+        <p className="text-muted mt-1">
           Perbarui judul, kategori, tingkat kesulitan, atau deskripsi course Anda.
         </p>
       </div>
 
-      <CourseFormClient categories={categories} initialCourse={course} />
+      <CourseFormClient
+        categories={categories}
+        initialCourse={course}
+        teacherName={course.teacher_name || user.name}
+      />
     </div>
   );
 }
