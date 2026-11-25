@@ -49,6 +49,28 @@ export async function POST(request) {
         { status: 404 }
       );
     }
+    if (err.code === 'COURSE_NOT_STARTED') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: err.startDateLabel
+            ? `Course belum dimulai. Pendaftaran baru dibuka pada ${err.startDateLabel}.`
+            : 'Course belum dimulai.',
+        },
+        { status: 400 }
+      );
+    }
+    if (err.code === 'COURSE_ENDED') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: err.endDateLabel
+            ? `Pendaftaran ditutup karena course telah berakhir pada ${err.endDateLabel}.`
+            : 'Pendaftaran course telah berakhir.',
+        },
+        { status: 400 }
+      );
+    }
     const mapped = mapPgError(err);
     if (mapped) {
       return NextResponse.json({ success: false, error: mapped.error }, { status: mapped.status });

@@ -2,17 +2,68 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Award, CheckCircle2, PlayCircle, Settings } from 'lucide-react';
+import { Award, Calendar, CheckCircle2, PlayCircle, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/ToastContext';
+import { getCourseScheduleState } from '@/lib/validators';
+
+function ScheduleLockedNotice({ schedule, footer = null }) {
+  const buttonLabel =
+    schedule.state === 'upcoming'
+      ? `Dibuka ${schedule.startDateLabel}`
+      : 'Pendaftaran Ditutup';
+  const description =
+    schedule.state === 'upcoming'
+      ? `Course ini dijadwalkan mulai pada ${schedule.startDateLabel}. Anda baru dapat mengikuti course saat tanggal tersebut tiba.`
+      : `Masa belajar course ini telah berakhir pada ${schedule.endDateLabel}.`;
+
+  return (
+    <div className="space-y-3">
+      <Button
+        type="button"
+        disabled
+        variant="outline"
+        size="lg"
+        className="w-full cursor-not-allowed"
+      >
+        <Calendar className="w-5 h-5" aria-hidden="true" />
+        <span>{buttonLabel}</span>
+      </Button>
+      <p className="rounded-2xl border border-line bg-page p-3.5 text-sm text-muted text-center">
+        {description}
+      </p>
+      {footer}
+    </div>
+  );
+}
 
 export function EnrollButton({ course, currentUser, enrollment }) {
   const router = useRouter();
   const { showToast } = useToast();
   const [submitting, setSubmitting] = useState(false);
+  const schedule = getCourseScheduleState(course);
 
-  // Guest state: route through /login with callbackUrl back to this course detail.
+  // Guest state: show schedule block when outside enrollment window, else route through /login.
   if (!currentUser) {
+    if (!schedule.canEnroll) {
+      return (
+        <ScheduleLockedNotice
+          schedule={schedule}
+          footer={
+            <p className="text-sm text-muted text-center">
+              Sudah punya akun?{' '}
+              <a
+                href={`/login?callbackUrl=/courses/${course.slug}`}
+                className="min-h-11 inline-flex items-center font-semibold text-primary-dark underline"
+              >
+                Masuk di sini
+              </a>
+            </p>
+          }
+        />
+      );
+    }
+
     return (
       <div className="space-y-3">
         <Button
@@ -43,8 +94,10 @@ export function EnrollButton({ course, currentUser, enrollment }) {
   if (isOwnerOrAdmin) {
     const manageHref =
       currentUser.role === 'admin'
-        ? `/admin/courses/${course.id}/materials`
+        ? `/admin/courses/${course.id}/edit`
         : `/teacher/courses/${course.id}/materials`;
+    const manageLabel =
+      currentUser.role === 'admin' ? 'Edit Course' : 'Kelola Materi Course';
 
     return (
       <div className="space-y-3">
@@ -55,7 +108,7 @@ export function EnrollButton({ course, currentUser, enrollment }) {
           className="w-full"
         >
           <Settings className="w-5 h-5" aria-hidden="true" />
-          <span>Kelola Materi Course</span>
+          <span>{manageLabel}</span>
         </Button>
         <Button href={`/learn/${course.slug}`} variant="ghost" size="sm" className="w-full">
           <PlayCircle className="w-4 h-4" aria-hidden="true" />
@@ -143,6 +196,10 @@ export function EnrollButton({ course, currentUser, enrollment }) {
       setSubmitting(false);
     }
   };
+
+  if (!schedule.canEnroll) {
+    return <ScheduleLockedNotice schedule={schedule} />;
+  }
 
   return (
     <Button

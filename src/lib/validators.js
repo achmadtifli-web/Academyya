@@ -112,15 +112,173 @@ export function parsePositiveInt(value) {
   return num;
 }
 
+const ID_SHORT_MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'Mei',
+  'Jun',
+  'Jul',
+  'Agu',
+  'Sep',
+  'Okt',
+  'Nov',
+  'Des',
+];
+
+export function parseCalendarDate(value) {
+  if (value === null || value === undefined) return { valid: true, value: null };
+  const trimmed = String(value).trim();
+  if (!trimmed) return { valid: true, value: null };
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (!match) return { valid: false, value: null };
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const utcCheck = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    utcCheck.getUTCFullYear() !== year ||
+    utcCheck.getUTCMonth() + 1 !== month ||
+    utcCheck.getUTCDate() !== day
+  ) {
+    return { valid: false, value: null };
+  }
+
+  return { valid: true, value: trimmed };
+}
+
+export function formatPlainDateId(dateStr) {
+  if (!dateStr) return '';
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateStr));
+  if (!match) return String(dateStr);
+  const year = match[1];
+  const monthIdx = Number(match[2]) - 1;
+  const day = Number(match[3]);
+  return `${day} ${ID_SHORT_MONTHS[monthIdx] || match[2]} ${year}`;
+}
+
+export function getTodayCalendarDate(referenceDate = new Date(), timeZone = 'Asia/Jakarta') {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(referenceDate);
+
+  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${lookup.year}-${lookup.month}-${lookup.day}`;
+}
+
+export function getCourseScheduleState(course, referenceDate = new Date()) {
+  const startRes = parseCalendarDate(course?.start_date);
+  const endRes = parseCalendarDate(course?.end_date);
+  const startDate = startRes.valid ? startRes.value : null;
+  const endDate = endRes.valid ? endRes.value : null;
+  const today =
+    typeof referenceDate === 'string'
+      ? referenceDate
+      : getTodayCalendarDate(referenceDate);
+
+  const startDateLabel = startDate ? formatPlainDateId(startDate) : null;
+  const endDateLabel = endDate ? formatPlainDateId(endDate) : null;
+
+  if (startDate && today < startDate) {
+    return {
+      state: 'upcoming',
+      canEnroll: false,
+      startDate,
+      endDate,
+      startDateLabel,
+      endDateLabel,
+    };
+  }
+
+  if (endDate && today > endDate) {
+    return {
+      state: 'ended',
+      canEnroll: false,
+      startDate,
+      endDate,
+      startDateLabel,
+      endDateLabel,
+    };
+  }
+
+  return {
+    state: 'open',
+    canEnroll: true,
+    startDate,
+    endDate,
+    startDateLabel,
+    endDateLabel,
+  };
+}
+
+export function formatCourseDateRange(startDate, endDate) {
+  if (!startDate && !endDate) return 'Lifetime Access';
+  if (startDate && endDate) {
+    return `${formatPlainDateId(startDate)} - ${formatPlainDateId(endDate)}`;
+  }
+  if (startDate) return `Mulai ${formatPlainDateId(startDate)}`;
+  return `Hingga ${formatPlainDateId(endDate)}`;
+}
+
+export function getTeacherMailtoHref(email, courseTitle = '') {
+  const cleanEmail = String(email || '').trim();
+  if (!cleanEmail) return null;
+  const subject = courseTitle ? `Pertanyaan Course: ${courseTitle}` : 'Pertanyaan Course';
+  return `mailto:${cleanEmail}?subject=${encodeURIComponent(subject)}`;
+}
+
+export function getTeacherGmailHref(email, courseTitle = '') {
+  const cleanEmail = String(email || '').trim();
+  if (!cleanEmail) return null;
+  const subject = courseTitle ? `Pertanyaan Course: ${courseTitle}` : 'Pertanyaan Course';
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(cleanEmail)}&su=${encodeURIComponent(subject)}`;
+}
+
+export function validateTeacherApplicationPayload(body) {
+  const fieldErrors = {};
+  const expertise = String(body?.expertise || '').trim();
+  const motivation = String(body?.motivation || '').trim();
+  const portfolioUrl = String(body?.portfolio_url || '').trim();
+
+  if (expertise.length < 3 || expertise.length > 150) {
+    fieldErrors.expertise = 'Bidang keahlian minimal 3 karakter.';
+  }
+  if (motivation.length < 10) {
+    fieldErrors.motivation = 'Motivasi mengajar minimal 10 karakter.';
+  }
+  if (portfolioUrl && !isValidHttpUrl(portfolioUrl)) {
+    fieldErrors.portfolio_url = 'URL portofolio harus diawali http:// atau https://.';
+  }
+
+  return {
+    valid: Object.keys(fieldErrors).length === 0,
+    fieldErrors,
+    data: {
+      expertise,
+      motivation,
+      portfolio_url: portfolioUrl || null,
+    },
+  };
+}
+
 export function validateRegisterPayload(body) {
   const fieldErrors = {};
   const name = String(body?.name || '').trim();
   const email = normalizeEmail(body?.email);
   const password = String(body?.password || '');
+  const hasConfirmPassword =
+    Boolean(body) &&
+    (Object.prototype.hasOwnProperty.call(body, 'confirmPassword') ||
+      Object.prototype.hasOwnProperty.call(body, 'confirm_password'));
+  const confirmPassword = String(body?.confirmPassword ?? body?.confirm_password ?? '');
   const accountType = body?.accountType === 'teacher' ? 'teacher' : 'student';
-  const expertise = String(body?.expertise || '').trim();
-  const motivation = String(body?.motivation || '').trim();
-  const portfolioUrl = String(body?.portfolio_url || '').trim();
 
   if (name.length < 2 || name.length > 100) {
     fieldErrors.name = 'Nama lengkap harus antara 2 sampai 100 karakter.';
@@ -131,17 +289,17 @@ export function validateRegisterPayload(body) {
   if (password.length < 8) {
     fieldErrors.password = 'Kata sandi minimal 8 karakter.';
   }
+  if (hasConfirmPassword) {
+    if (!confirmPassword) {
+      fieldErrors.confirmPassword = 'Konfirmasi kata sandi wajib diisi.';
+    } else if (confirmPassword !== password) {
+      fieldErrors.confirmPassword = 'Konfirmasi kata sandi tidak cocok dengan kata sandi.';
+    }
+  }
 
+  const teacherValidation = validateTeacherApplicationPayload(body);
   if (accountType === 'teacher') {
-    if (expertise.length < 3 || expertise.length > 150) {
-      fieldErrors.expertise = 'Bidang keahlian minimal 3 karakter.';
-    }
-    if (motivation.length < 10) {
-      fieldErrors.motivation = 'Motivasi mengajar minimal 10 karakter.';
-    }
-    if (portfolioUrl && !isValidHttpUrl(portfolioUrl)) {
-      fieldErrors.portfolio_url = 'URL portofolio harus diawali http:// atau https://.';
-    }
+    Object.assign(fieldErrors, teacherValidation.fieldErrors);
   }
 
   return {
@@ -152,20 +310,61 @@ export function validateRegisterPayload(body) {
       email,
       password,
       accountType,
-      expertise,
-      motivation,
-      portfolio_url: portfolioUrl || null,
+      expertise: teacherValidation.data.expertise,
+      motivation: teacherValidation.data.motivation,
+      portfolio_url: teacherValidation.data.portfolio_url,
     },
   };
 }
 
-export function validateCoursePayload(body) {
+export function validateAdminUserPayload(body, { isEditing = false } = {}) {
+  const fieldErrors = {};
+  const name = String(body?.name ?? body?.username ?? '').trim();
+  const email = normalizeEmail(body?.email);
+  const rawPassword = body?.password === undefined || body?.password === null
+    ? ''
+    : String(body.password);
+  const role = String(body?.role || 'student').trim().toLowerCase();
+
+  if (name.length < 2 || name.length > 100) {
+    fieldErrors.name = 'Username / nama harus antara 2 sampai 100 karakter.';
+  }
+  if (!isValidEmail(email) || email.length > 150) {
+    fieldErrors.email = 'Masukkan alamat email yang valid.';
+  }
+  if (!isEditing) {
+    if (rawPassword.length < 8) {
+      fieldErrors.password = 'Kata sandi minimal 8 karakter.';
+    }
+  } else if (rawPassword.length > 0 && rawPassword.length < 8) {
+    fieldErrors.password = 'Kata sandi baru minimal 8 karakter.';
+  }
+  if (!['admin', 'teacher', 'student'].includes(role)) {
+    fieldErrors.role = 'Pilih peran pengguna yang valid (student, teacher, atau admin).';
+  }
+
+  return {
+    valid: Object.keys(fieldErrors).length === 0,
+    fieldErrors,
+    data: {
+      name,
+      email,
+      password: rawPassword || null,
+      role,
+    },
+  };
+}
+
+export function validateCoursePayload(body, { requireTeacherId = false } = {}) {
   const fieldErrors = {};
   const title = String(body?.title || '').trim();
   const description = String(body?.description || '').trim();
   const categoryId = parsePositiveInt(body?.category_id);
+  const teacherId = parsePositiveInt(body?.teacher_id);
   const level = String(body?.level || 'pemula').trim();
   const thumbnailUrl = String(body?.thumbnail_url || '').trim();
+  const startDateRes = parseCalendarDate(body?.start_date);
+  const endDateRes = parseCalendarDate(body?.end_date);
 
   if (title.length < 5 || title.length > 200) {
     fieldErrors.title = 'Judul course harus antara 5 sampai 200 karakter.';
@@ -176,11 +375,29 @@ export function validateCoursePayload(body) {
   if (!categoryId) {
     fieldErrors.category_id = 'Pilih kategori course yang valid.';
   }
+  if (requireTeacherId && !teacherId) {
+    fieldErrors.teacher_id = 'Pilih guru pengajar (teacher) yang valid.';
+  }
   if (!['pemula', 'menengah', 'lanjut'].includes(level)) {
     fieldErrors.level = 'Level harus pemula, menengah, atau lanjut.';
   }
   if (thumbnailUrl && !isValidImageSource(thumbnailUrl)) {
     fieldErrors.thumbnail_url = 'URL thumbnail harus diawali http://, https://, atau /images/.';
+  }
+  if (!startDateRes.valid) {
+    fieldErrors.start_date = 'Format tanggal mulai tidak valid.';
+  }
+  if (!endDateRes.valid) {
+    fieldErrors.end_date = 'Format tanggal selesai tidak valid.';
+  }
+  if (
+    startDateRes.valid &&
+    endDateRes.valid &&
+    startDateRes.value &&
+    endDateRes.value &&
+    endDateRes.value < startDateRes.value
+  ) {
+    fieldErrors.end_date = 'Tanggal selesai tidak boleh sebelum tanggal mulai.';
   }
 
   return {
@@ -190,13 +407,16 @@ export function validateCoursePayload(body) {
       title,
       description,
       category_id: categoryId,
+      ...(requireTeacherId ? { teacher_id: teacherId } : {}),
+      start_date: startDateRes.value,
+      end_date: endDateRes.value,
       level,
       thumbnail_url: thumbnailUrl || null,
     },
   };
 }
 
-export function validateMaterialPayload(body) {
+export function validateMaterialPayload(body, { allowPosition = false } = {}) {
   const fieldErrors = {};
   const title = String(body?.title || '').trim();
   const content = String(body?.content || '').trim();
@@ -204,6 +424,8 @@ export function validateMaterialPayload(body) {
   const rawDuration = body?.duration_minutes === '' || body?.duration_minutes === undefined
     ? 0
     : Number(body?.duration_minutes);
+  const rawPosition = body?.position;
+  let parsedPosition = null;
 
   if (title.length < 3 || title.length > 200) {
     fieldErrors.title = 'Judul materi harus antara 3 sampai 200 karakter.';
@@ -217,6 +439,17 @@ export function validateMaterialPayload(body) {
   if (!Number.isInteger(rawDuration) || rawDuration < 0 || rawDuration > 600) {
     fieldErrors.duration_minutes = 'Durasi harus bilangan bulat antara 0 sampai 600 menit.';
   }
+  if (
+    allowPosition &&
+    rawPosition !== undefined &&
+    rawPosition !== null &&
+    String(rawPosition).trim() !== ''
+  ) {
+    parsedPosition = parsePositiveInt(rawPosition);
+    if (!parsedPosition) {
+      fieldErrors.position = 'Urutan materi harus berupa angka bulat minimal 1.';
+    }
+  }
 
   return {
     valid: Object.keys(fieldErrors).length === 0,
@@ -226,6 +459,7 @@ export function validateMaterialPayload(body) {
       content: content || null,
       video_url: videoUrl || null,
       duration_minutes: rawDuration,
+      ...(parsedPosition ? { position: parsedPosition } : {}),
     },
   };
 }

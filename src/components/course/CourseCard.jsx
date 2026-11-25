@@ -1,9 +1,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { BadgeCheck, BookOpen, Clock, Users } from 'lucide-react';
+import { Award, BadgeCheck, BookOpen, Calendar, Clock, Users } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { StatusBadge } from '@/components/ui/Badge';
 import { getCourseThumbnail } from '@/lib/courseThumbnails';
+import { getCourseScheduleState } from '@/lib/validators';
 
 const CATEGORY_TEXT_THEMES = {
   'teknologi-pemrograman': 'text-primary-dark',
@@ -17,6 +18,7 @@ export function CourseCard({ course }) {
   const thumbnailSrc = getCourseThumbnail(course);
   const categoryTextTheme =
     CATEGORY_TEXT_THEMES[course.category_slug] || 'text-primary-dark';
+  const schedule = getCourseScheduleState(course);
 
   return (
     <Link
@@ -48,6 +50,33 @@ export function CourseCard({ course }) {
         <h3 className="font-heading font-semibold text-base sm:text-lg text-ink leading-snug line-clamp-2 group-hover:text-primary-hover transition">
           {course.title}
         </h3>
+
+        {(schedule.state !== 'open' || Boolean(course.finalized_at)) && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {Boolean(course.finalized_at) && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-success/25 bg-success-light px-2.5 py-0.5 text-xs font-semibold text-success">
+                <Award className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                <span>Bersertifikat</span>
+              </span>
+            )}
+            {schedule.state !== 'open' && (
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+                  schedule.state === 'upcoming'
+                    ? 'bg-accent-light text-ink border-accent-dark/30'
+                    : 'bg-page text-muted border-line-strong'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                <span>
+                  {schedule.state === 'upcoming'
+                    ? `Mulai ${schedule.startDateLabel}`
+                    : `Berakhir ${schedule.endDateLabel}`}
+                </span>
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="mt-auto pt-3 border-t border-line space-y-2.5 min-w-0">
           <div className="flex items-center gap-2 text-sm text-muted min-w-0">

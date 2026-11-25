@@ -1,10 +1,12 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { BadgeCheck, BookOpen, Clock, Users } from 'lucide-react';
+import { BadgeCheck, BookOpen, Calendar, Clock, Users } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
 import { getCourseThumbnail } from '@/lib/courseThumbnails';
 import { getCourseDetailBySlug } from '@/lib/queries/courses';
+import { formatCourseDateRange, getCourseScheduleState } from '@/lib/validators';
+import { ContactTeacherButton } from '@/components/course/ContactTeacherButton';
 import { EnrollButton } from '@/components/course/EnrollButton';
 import { SyllabusList } from '@/components/course/SyllabusList';
 import { Avatar } from '@/components/ui/Avatar';
@@ -35,6 +37,7 @@ export default async function CourseDetailPage({ params }) {
   }
 
   const { course, materials, enrollment } = detail;
+  const schedule = getCourseScheduleState(course);
   const isOwnerOrAdmin =
     currentUser &&
     (currentUser.role === 'admin' ||
@@ -61,9 +64,20 @@ export default async function CourseDetailPage({ params }) {
               </Link>
             </nav>
 
-            {course.status === 'draft' && (
+            {(course.status === 'draft' || schedule.state !== 'open' || Boolean(course.finalized_at)) && (
               <div className="flex flex-wrap items-center gap-2.5">
-                <StatusBadge status="draft" />
+                {course.status === 'draft' && <StatusBadge status="draft" />}
+                {Boolean(course.finalized_at) && <StatusBadge status="certified" />}
+                {schedule.state !== 'open' && (
+                  <StatusBadge
+                    status={schedule.state}
+                    labelOverride={
+                      schedule.state === 'upcoming'
+                        ? `Belum Dimulai · Buka ${schedule.startDateLabel}`
+                        : `Berakhir ${schedule.endDateLabel}`
+                    }
+                  />
+                )}
               </div>
             )}
 
@@ -76,27 +90,46 @@ export default async function CourseDetailPage({ params }) {
             </p>
 
             {/* Instructor Card Pill */}
-            <div className="rounded-2xl border border-line bg-page p-4 sm:p-5 flex items-start gap-4">
-              <Avatar
-                src={course.teacher_avatar}
-                name={course.teacher_name}
-                size="lg"
-              />
-              <div className="space-y-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <p className="font-heading font-semibold text-base text-ink">
-                    {course.teacher_name}
-                  </p>
-                  <span title="Teacher terverifikasi" className="inline-flex items-center">
-                    <BadgeCheck className="w-4 h-4 text-primary-hover shrink-0" aria-hidden="true" />
-                    <span className="sr-only">Teacher terverifikasi</span>
-                  </span>
+            {(() => {
+              const showContact =
+                Boolean(course.teacher_email) &&
+                Number(currentUser?.id) !== Number(course.teacher_id);
+
+              return (
+                <div className="rounded-2xl border border-line bg-page p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-start gap-4 min-w-0">
+                    <Avatar
+                      src={course.teacher_avatar}
+                      name={course.teacher_name}
+                      size="lg"
+                    />
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <p className="font-heading font-semibold text-base text-ink">
+                          {course.teacher_name}
+                        </p>
+                        <span title="Teacher terverifikasi" className="inline-flex items-center">
+                          <BadgeCheck className="w-4 h-4 text-primary-hover shrink-0" aria-hidden="true" />
+                          <span className="sr-only">Teacher terverifikasi</span>
+                        </span>
+                      </div>
+                      {course.teacher_bio && (
+                        <p className="text-sm text-muted leading-relaxed">{course.teacher_bio}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {showContact && (
+                    <ContactTeacherButton
+                      teacherName={course.teacher_name}
+                      teacherEmail={course.teacher_email}
+                      courseTitle={course.title}
+                      className="shrink-0"
+                    />
+                  )}
                 </div>
-                {course.teacher_bio && (
-                  <p className="text-sm text-muted leading-relaxed">{course.teacher_bio}</p>
-                )}
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Metadata Row */}
             <div className="flex flex-wrap items-center gap-6 pt-1 text-sm sm:text-base font-medium text-ink">
@@ -111,6 +144,10 @@ export default async function CourseDetailPage({ params }) {
               <span className="inline-flex items-center gap-2">
                 <Users className="w-5 h-5 text-accent-dark" aria-hidden="true" />
                 <span>{course.total_students} Siswa Terdaftar</span>
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-primary-hover" aria-hidden="true" />
+                <span>{formatCourseDateRange(course.start_date, course.end_date)}</span>
               </span>
             </div>
           </div>
