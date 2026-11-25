@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, Save, Send, Trash2, Upload, X } from 'lucide-react';
+import { AlertCircle, FileText, Save, Trash2, Upload, X } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { InputField, TextareaField } from '@/components/ui/Input';
+import { PasswordField } from '@/components/ui/PasswordField';
 import { useToast } from '@/components/ui/ToastContext';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -29,14 +30,7 @@ export function ProfileClient({ initialUser, initialApplications = [] }) {
   const [fieldErrors, setFieldErrors] = useState({});
   const [savingProfile, setSavingProfile] = useState(false);
 
-  const [applications, setApplications] = useState(initialApplications);
-  const [expertise, setExpertise] = useState('');
-  const [motivation, setMotivation] = useState('');
-  const [portfolioUrl, setPortfolioUrl] = useState('');
-  const [appErrors, setAppErrors] = useState({});
-  const [submittingApp, setSubmittingApp] = useState(false);
-
-  const hasPendingApp = applications.some((a) => a.status === 'pending');
+  const applications = initialApplications;
 
   useEffect(() => {
     return () => {
@@ -148,39 +142,6 @@ export function ProfileClient({ initialUser, initialApplications = [] }) {
     }
   };
 
-  const handleApplyTeacher = async (e) => {
-    e.preventDefault();
-    setSubmittingApp(true);
-    setAppErrors({});
-    try {
-      const res = await fetch('/api/teacher-applications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          expertise,
-          motivation,
-          portfolio_url: portfolioUrl,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        if (json.fieldErrors) setAppErrors(json.fieldErrors);
-        throw new Error(json.error || 'Gagal mengirim pengajuan Teacher.');
-      }
-
-      setApplications((prev) => [json.data.application, ...prev]);
-      setExpertise('');
-      setMotivation('');
-      setPortfolioUrl('');
-      showToast({ type: 'success', message: json.message });
-      router.refresh();
-    } catch (err) {
-      showToast({ type: 'error', message: err.message || 'Gagal mengirim pengajuan Teacher.' });
-    } finally {
-      setSubmittingApp(false);
-    }
-  };
-
   return (
     <div className="grid lg:grid-cols-12 gap-8 items-start">
       {/* Left Preview Card */}
@@ -218,6 +179,17 @@ export function ProfileClient({ initialUser, initialApplications = [] }) {
                   </div>
                   {app.review_note && (
                     <p className="text-sm text-muted">Catatan: {app.review_note}</p>
+                  )}
+                  {app.cv_url && (
+                    <a
+                      href={app.cv_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-dark hover:underline"
+                    >
+                      <FileText className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>Lihat CV yang Diunggah</span>
+                    </a>
                   )}
                 </div>
               ))}
@@ -342,18 +314,18 @@ export function ProfileClient({ initialUser, initialApplications = [] }) {
               Ganti Kata Sandi (Opsional)
             </h3>
             <div className="grid sm:grid-cols-2 gap-4">
-              <InputField
+              <PasswordField
                 id="profile-current-password"
                 label="Kata Sandi Saat Ini"
-                type="password"
+                autoComplete="current-password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 error={fieldErrors.currentPassword}
               />
-              <InputField
+              <PasswordField
                 id="profile-new-password"
                 label="Kata Sandi Baru (Minimal 8 karakter)"
-                type="password"
+                autoComplete="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 error={fieldErrors.newPassword}
@@ -368,59 +340,6 @@ export function ProfileClient({ initialUser, initialApplications = [] }) {
             </Button>
           </div>
         </form>
-
-        {/* Student-only Apply to become Teacher section */}
-        {user.role === 'student' && !hasPendingApp && (
-          <form
-            onSubmit={handleApplyTeacher}
-            className="rounded-3xl bg-white border border-line p-6 sm:p-8 space-y-5"
-          >
-            <div>
-              <h2 className="font-heading text-xl font-semibold text-ink">
-                Ajukan Diri Menjadi Teacher
-              </h2>
-              <p className="mt-1 text-base text-muted">
-                Bagikan keahlian Anda dengan membuat course terstruktur di Academyya. Pengajuan akan diverifikasi oleh Admin.
-              </p>
-            </div>
-
-            <InputField
-              id="apply-expertise"
-              label="Bidang Keahlian"
-              required
-              value={expertise}
-              onChange={(e) => setExpertise(e.target.value)}
-              error={appErrors.expertise}
-              placeholder="Contoh: Desain UI/UX & Aksesibilitas"
-            />
-            <TextareaField
-              id="apply-motivation"
-              label="Motivasi Mengajar"
-              required
-              rows={3}
-              value={motivation}
-              onChange={(e) => setMotivation(e.target.value)}
-              error={appErrors.motivation}
-              placeholder="Jelaskan pengalaman dan topik materi yang akan Anda ajarkan..."
-            />
-            <InputField
-              id="apply-portfolio"
-              label="Tautan Portofolio (Opsional)"
-              type="url"
-              value={portfolioUrl}
-              onChange={(e) => setPortfolioUrl(e.target.value)}
-              error={appErrors.portfolio_url}
-              placeholder="https://github.com/username"
-            />
-
-            <div className="flex justify-end">
-              <Button type="submit" variant="outline" loading={submittingApp}>
-                <Send className="w-4 h-4" aria-hidden="true" />
-                <span>{submittingApp ? 'Mengirim...' : 'Kirim Pengajuan Teacher'}</span>
-              </Button>
-            </div>
-          </form>
-        )}
       </div>
     </div>
   );

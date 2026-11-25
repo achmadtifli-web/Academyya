@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AlertCircle, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { InputField } from '@/components/ui/Input';
+import { PasswordField } from '@/components/ui/PasswordField';
 import { useToast } from '@/components/ui/ToastContext';
 
 function getSafeRedirect(callbackUrl, role) {
@@ -78,10 +79,9 @@ export function LoginFormClient({ callbackUrl = '' }) {
         placeholder="nama@email.com"
       />
 
-      <InputField
+      <PasswordField
         id="login-password"
         label="Kata Sandi"
-        type="password"
         required
         autoComplete="current-password"
         value={password}

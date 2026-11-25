@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { AlertCircle, Info, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { InputField, TextareaField } from '@/components/ui/Input';
+import { PasswordField } from '@/components/ui/PasswordField';
+import { TeacherCvUploadField } from '@/components/teacher/TeacherCvUploadField';
 import { useToast } from '@/components/ui/ToastContext';
 
 export function RegisterFormClient({ initialType = 'student', callbackUrl = '' }) {
@@ -18,34 +20,80 @@ export function RegisterFormClient({ initialType = 'student', callbackUrl = '' }
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [expertise, setExpertise] = useState('');
   const [motivation, setMotivation] = useState('');
   const [portfolioUrl, setPortfolioUrl] = useState('');
+  const [cvFile, setCvFile] = useState(null);
 
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
+  const clearFieldError = (field) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
     setError('');
     setFieldErrors({});
 
+    const clientErrors = {};
+    if (password !== confirmPassword) {
+      clientErrors.confirmPassword = 'Konfirmasi kata sandi tidak cocok dengan kata sandi.';
+    }
+    if (accountType === 'teacher' && !cvFile) {
+      clientErrors.cv = 'Unggah file CV dalam format PDF (wajib).';
+    }
+    if (Object.keys(clientErrors).length > 0) {
+      setFieldErrors(clientErrors);
+      setError('Periksa kembali data pendaftaran Anda.');
+      const targetId = clientErrors.confirmPassword ? 'register-confirm-password' : 'register-cv';
+      document.getElementById(targetId)?.focus();
+      return;
+    }
+
+    setSubmitting(true);
+
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-          accountType,
-          expertise,
-          motivation,
-          portfolio_url: portfolioUrl,
-        }),
-      });
+      let res;
+      if (accountType === 'teacher') {
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('email', email);
+        formData.append('password', password);
+        formData.append('confirmPassword', confirmPassword);
+        formData.append('accountType', accountType);
+        formData.append('expertise', expertise);
+        formData.append('motivation', motivation);
+        formData.append('portfolio_url', portfolioUrl);
+        if (cvFile) {
+          formData.append('cv', cvFile);
+        }
+
+        res = await fetch('/api/auth/register', {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            email,
+            password,
+            confirmPassword,
+            accountType,
+          }),
+        });
+      }
       const json = await res.json();
 
       if (!res.ok || !json.success) {
@@ -146,17 +194,39 @@ export function RegisterFormClient({ initialType = 'student', callbackUrl = '' }
         placeholder="nama@email.com"
       />
 
-      <InputField
+      <PasswordField
         id="register-password"
         label="Kata Sandi"
-        type="password"
         required
         autoComplete="new-password"
         value={password}
-        onChange={(e) => setPassword(e.target.value)}
+        onChange={(e) => {
+          setPassword(e.target.value);
+          clearFieldError('password');
+          clearFieldError('confirmPassword');
+        }}
         error={fieldErrors.password}
         hint="Minimal 8 karakter."
         placeholder="Buat kata sandi minimal 8 karakter"
+      />
+
+      <PasswordField
+        id="register-confirm-password"
+        label="Konfirmasi Kata Sandi"
+        required
+        autoComplete="new-password"
+        value={confirmPassword}
+        onChange={(e) => {
+          setConfirmPassword(e.target.value);
+          clearFieldError('confirmPassword');
+        }}
+        error={
+          fieldErrors.confirmPassword ||
+          (confirmPassword && confirmPassword !== password
+            ? 'Konfirmasi kata sandi belum cocok.'
+            : undefined)
+        }
+        placeholder="Ulangi kata sandi Anda"
       />
 
       {accountType === 'teacher' && (
@@ -190,6 +260,23 @@ export function RegisterFormClient({ initialType = 'student', callbackUrl = '' }
             onChange={(e) => setPortfolioUrl(e.target.value)}
             error={fieldErrors.portfolio_url}
             placeholder="https://github.com/username"
+          />
+
+          <TeacherCvUploadField
+            id="register-cv"
+            file={cvFile}
+            onChange={(nextFile) => {
+              setCvFile(nextFile);
+              clearFieldError('cv');
+            }}
+            error={fieldErrors.cv}
+            onErrorChange={(msg) => {
+              if (msg) {
+                setFieldErrors((prev) => ({ ...prev, cv: msg }));
+              } else {
+                clearFieldError('cv');
+              }
+            }}
           />
         </div>
       )}
