@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { requireApiRole } from '@/lib/auth';
+import { hashPassword, requireApiRole } from '@/lib/auth';
 import { deleteStoredAvatarByUrl } from '@/lib/avatarStorage';
-import { deleteUserByAdmin } from '@/lib/queries/users';
-import { parsePositiveInt } from '@/lib/validators';
+import { mapPgError } from '@/lib/db';
+import { deleteUserByAdmin, updateUserByAdmin } from '@/lib/queries/users';
+import { parsePositiveInt, validateAdminUserPayload } from '@/lib/validators';
 
 function formatTeacherBlockedMessage(publishedCourses, activeCourseEnrollments) {
   if (publishedCourses > 0 && activeCourseEnrollments > 0) {
@@ -12,6 +13,98 @@ function formatTeacherBlockedMessage(publishedCourses, activeCourseEnrollments) 
     return `Akun teacher tidak dapat dihapus karena masih memiliki ${publishedCourses} course berstatus published. Turunkan ke draft atau hapus course terkait terlebih dahulu.`;
   }
   return `Akun teacher tidak dapat dihapus karena masih ada ${activeCourseEnrollments} siswa yang sedang aktif belajar di course miliknya.`;
+}
+
+export async function PUT(request, context) {
+  const { user, errorResponse } = await requireApiRole(['admin']);
+  if (errorResponse) return errorResponse;
+
+  try {
+    const { id } = await context.params;
+    const targetId = parsePositiveInt(id);
+    if (!targetId) {
+      return NextResponse.json(
+        { success: false, error: 'ID pengguna tidak valid.' },
+        { status: 400 }
+      );
+    }
+
+    const body = await request.json().catch(() => null);
+    if (!body) {
+      return NextResponse.json(
+        { success: false, error: 'Permintaan tidak valid.' },
+        { status: 400 }
+      );
+    }
+
+    const validation = validateAdminUserPayload(body, { isEditing: true });
+    if (!validation.valid) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Periksa kembali data pengguna.',
+          fieldErrors: validation.fieldErrors,
+        },
+        { status: 400 }
+      );
+    }
+
+    const { name, email, password, role } = validation.data;
+    if (Number(targetId) === Number(user.id) && role !== 'admin') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Anda tidak dapat menurunkan peran akun Admin Anda sendiri.',
+          fieldErrors: { role: 'Peran akun yang sedang digunakan tidak boleh diubah dari Admin.' },
+        },
+        { status: 400 }
+      );
+    }
+
+    const passwordHash = password ? await hashPassword(password) : null;
+    const result = await updateUserByAdmin(targetId, {
+      name,
+      email,
+      passwordHash,
+      role,
+      adminId: Number(user.id),
+    });
+
+    if (result.status === 'NOT_FOUND') {
+      return NextResponse.json(
+        { success: false, error: 'Pengguna tidak ditemukan.' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: { user: result.user },
+        message: 'Data pengguna berhasil diperbarui.',
+      },
+      { status: 200 }
+    );
+  } catch (err) {
+    if (err?.code === '23505' && err?.constraint?.includes('email')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Email sudah digunakan oleh pengguna lain.',
+          fieldErrors: { email: 'Email sudah terdaftar di sistem.' },
+        },
+        { status: 409 }
+      );
+    }
+    const mapped = mapPgError(err);
+    if (mapped) {
+      return NextResponse.json({ success: false, error: mapped.error }, { status: mapped.status });
+    }
+    return NextResponse.json(
+      { success: false, error: 'Gagal memperbarui data pengguna.' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function DELETE(_request, context) {
