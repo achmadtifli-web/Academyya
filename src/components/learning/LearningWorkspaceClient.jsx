@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Award, ChevronDown, ChevronLeft, List } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Award, ChevronDown, ChevronLeft, Clock, List } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { DiscussionThread } from '@/components/learning/DiscussionThread';
@@ -47,10 +47,10 @@ export function LearningWorkspaceClient({
       )
     );
 
-    if (result.course_completed && result.certificate_code) {
-      setCertificateCode(result.certificate_code);
+    if (result.course_completed) {
+      setCertificateCode(result.certificate_code || null);
       setCompletionModalOpen(true);
-    } else if (!result.course_completed) {
+    } else {
       setCertificateCode(null);
     }
 
@@ -156,7 +156,13 @@ export function LearningWorkspaceClient({
                   variant="ghost"
                 >
                   <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-                  <span>{isPreviewMode ? 'Kelola Materi' : 'Detail Course'}</span>
+                  <span>
+                    {isPreviewMode
+                      ? previewReturnHref === '/admin/courses'
+                        ? 'Daftar Course'
+                        : 'Kelola Materi'
+                      : 'Detail Course'}
+                  </span>
                 </Button>
               )}
             </div>
@@ -200,7 +206,7 @@ export function LearningWorkspaceClient({
             materials={materials}
             activeMaterialId={activeMaterial.id}
           />
-          {certificateCode && (
+          {certificateCode ? (
             <div className="mt-4 rounded-3xl border border-success/30 bg-success-light p-5 space-y-3">
               <div className="flex items-center gap-2.5 text-success font-heading font-semibold text-base">
                 <Award className="w-5 h-5" aria-hidden="true" />
@@ -216,6 +222,19 @@ export function LearningWorkspaceClient({
                 Buka & Cetak Sertifikat
               </Link>
             </div>
+          ) : (
+            !isPreviewMode &&
+            progressPercent === 100 && (
+              <div className="mt-4 rounded-3xl border border-accent-dark/30 bg-accent-light p-5 space-y-2">
+                <div className="flex items-center gap-2.5 text-ink font-heading font-semibold text-base">
+                  <Clock className="w-5 h-5 text-accent-dark shrink-0" aria-hidden="true" />
+                  <span>Menunggu Finalisasi Pengajar</span>
+                </div>
+                <p className="text-sm text-ink/90 leading-relaxed">
+                  Seluruh materi sudah selesai 100%. Sertifikat akan terbit otomatis setelah course ini difinalisasi pengajar.
+                </p>
+              </div>
+            )
           )}
         </aside>
       </main>
@@ -231,7 +250,15 @@ export function LearningWorkspaceClient({
             <Award className="w-8 h-8" aria-hidden="true" />
           </div>
           <p className="text-base text-ink leading-relaxed">
-            Anda telah menuntaskan seluruh materi pada <strong>{course.title}</strong>. Sertifikat digital Anda siap diunduh dan dicetak.
+            {certificateCode ? (
+              <>
+                Anda telah menuntaskan seluruh materi pada <strong>{course.title}</strong>. Sertifikat digital Anda siap diunduh dan dicetak.
+              </>
+            ) : (
+              <>
+                Anda telah menuntaskan seluruh materi pada <strong>{course.title}</strong>. Sertifikat digital akan terbit otomatis setelah pengajar memfinalisasi course ini.
+              </>
+            )}
           </p>
           {certificateCode && (
             <p className="text-sm font-semibold text-primary-dark bg-primary-light rounded-2xl px-4 py-3">

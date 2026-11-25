@@ -23,6 +23,7 @@ CREATE TABLE users (
                 CHECK (role IN ('admin', 'teacher', 'student')),
   avatar_url    TEXT,
   bio           TEXT,
+  approved_at   TIMESTAMP,
   created_at    TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -32,6 +33,7 @@ CREATE TABLE teacher_applications (
   expertise     VARCHAR(150) NOT NULL,
   motivation    TEXT,
   portfolio_url TEXT,
+  cv_url        TEXT,
   status        VARCHAR(10) NOT NULL DEFAULT 'pending'
                 CHECK (status IN ('pending', 'approved', 'rejected')),
   reviewed_by   BIGINT REFERENCES users(id) ON DELETE SET NULL,
@@ -60,6 +62,10 @@ CREATE TABLE courses (
                 CHECK (level IN ('pemula', 'menengah', 'lanjut')),
   status        VARCHAR(10) NOT NULL DEFAULT 'draft'
                 CHECK (status IN ('draft', 'published')),
+  start_date    DATE,
+  end_date      DATE,
+  finalized_at  TIMESTAMP,
+  CHECK (start_date IS NULL OR end_date IS NULL OR end_date >= start_date),
   created_at    TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMP NOT NULL DEFAULT NOW()
 );

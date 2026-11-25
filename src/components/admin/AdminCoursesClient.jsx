@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BookOpen, ExternalLink, EyeOff, Globe, Layers, Search, Trash2 } from 'lucide-react';
+import { BookOpen, ExternalLink, EyeOff, Globe, Lock, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmModal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/ToastContext';
-import { getCourseDeleteGuard } from '@/lib/validators';
+import { formatCourseDateRange, getCourseDeleteGuard } from '@/lib/validators';
 
 export function AdminCoursesClient({ initialCourses = [] }) {
   const router = useRouter();
@@ -19,6 +19,7 @@ export function AdminCoursesClient({ initialCourses = [] }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [busyId, setBusyId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [finalizeTarget, setFinalizeTarget] = useState(null);
 
   const visibleCourses = courses.filter((course) => {
     const matchStatus = statusFilter === 'all' || course.status === statusFilter;
@@ -80,9 +81,41 @@ export function AdminCoursesClient({ initialCourses = [] }) {
     }
   };
 
+  const handleFinalize = async () => {
+    if (!finalizeTarget) return;
+    setBusyId(finalizeTarget.id);
+    try {
+      const res = await fetch(`/api/admin/courses/${finalizeTarget.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'finalize' }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Gagal memfinalisasi course.');
+      }
+
+      setCourses((prev) =>
+        prev.map((c) =>
+          c.id === finalizeTarget.id
+            ? { ...c, finalized_at: json.data.course.finalized_at }
+            : c
+        )
+      );
+      showToast({ type: 'success', message: json.message });
+      setFinalizeTarget(null);
+      router.refresh();
+    } catch (err) {
+      showToast({ type: 'error', message: err.message || 'Gagal memfinalisasi course.' });
+      setFinalizeTarget(null);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+      <div className="flex flex-col lg:flex-row gap-3 lg:items-center justify-between">
         <div className="relative flex-1 max-w-md">
           <label htmlFor="admin-course-search" className="sr-only">
             Cari judul course atau nama pengajar
@@ -101,7 +134,7 @@ export function AdminCoursesClient({ initialCourses = [] }) {
           />
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {[
             { value: 'all', label: 'Semua' },
             { value: 'published', label: 'Published' },
@@ -120,6 +153,10 @@ export function AdminCoursesClient({ initialCourses = [] }) {
               {tab.label}
             </button>
           ))}
+          <Button href="/admin/courses/new" variant="primary">
+            <Plus className="w-4 h-4" aria-hidden="true" />
+            <span>Buat Course Baru</span>
+          </Button>
         </div>
       </div>
 
@@ -157,12 +194,16 @@ export function AdminCoursesClient({ initialCourses = [] }) {
                           <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
                         </Link>
                         <p className="text-sm text-muted mt-0.5">
-                          {course.category_name} · {course.total_materials} materi
+                          {course.category_name} · {course.total_materials} materi ·{' '}
+                          {formatCourseDateRange(course.start_date, course.end_date)}
                         </p>
                       </td>
                       <td className="py-4 px-5 text-sm text-ink">{course.teacher_name}</td>
                       <td className="py-4 px-5">
-                        <StatusBadge status={course.status} />
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <StatusBadge status={course.status} />
+                          {Boolean(course.finalized_at) && <StatusBadge status="finalized" />}
+                        </div>
                       </td>
                       <td className="py-4 px-5 text-sm">
                         <p className="font-semibold text-ink">{course.total_students}</p>
@@ -171,47 +212,77 @@ export function AdminCoursesClient({ initialCourses = [] }) {
                         )}
                       </td>
                       <td className="py-4 px-5">
-                        <div className="flex flex-col items-end gap-1">
-                          <div className="flex flex-wrap items-center justify-end gap-2">
-                            <Button
-                              href={`/admin/courses/${course.id}/materials`}
-                              variant="primary"
-                              size="sm"
+                        <div className="flex flex-col items-end gap-1.5">
+                          <div className="flex items-center justify-end gap-2 shrink-0">
+                            <Link
+                              href={`/admin/courses/${course.id}/edit`}
+                              aria-label={`Edit ${course.title}`}
+                              title="Edit Course"
+                              className="w-11 h-11 rounded-2xl bg-white text-primary-dark border-2 border-primary-hover hover:bg-primary-light/60 inline-flex items-center justify-center transition"
                             >
-                              <Layers className="w-4 h-4" aria-hidden="true" />
-                              <span>Kelola Materi</span>
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={busyId === course.id}
+                              <Pencil className="w-5 h-5" aria-hidden="true" />
+                            </Link>
+                            {course.status === 'published' &&
+                              !course.finalized_at &&
+                              course.total_materials > 0 && (
+                                <button
+                                  type="button"
+                                  aria-label={`Finalisasi ${course.title}`}
+                                  title="Finalisasi Course"
+                                  disabled={busyId === course.id}
+                                  onClick={() => setFinalizeTarget(course)}
+                                  className="w-11 h-11 rounded-2xl bg-purple-light text-purple border border-purple/30 hover:bg-purple/15 disabled:opacity-50 inline-flex items-center justify-center transition"
+                                >
+                                  <Lock className="w-5 h-5" aria-hidden="true" />
+                                </button>
+                              )}
+                            <button
+                              type="button"
+                              aria-label={
+                                course.status === 'published'
+                                  ? course.finalized_at
+                                    ? `${course.title} sudah final`
+                                    : `Turunkan ${course.title} ke draft`
+                                  : `Publikasikan ${course.title}`
+                              }
+                              title={
+                                course.status === 'published'
+                                  ? course.finalized_at
+                                    ? 'Course sudah final dan tidak bisa diturunkan ke draft'
+                                    : 'Turunkan ke Draft'
+                                  : 'Publikasikan Course'
+                              }
+                              disabled={
+                                busyId === course.id ||
+                                (course.status === 'published' && Boolean(course.finalized_at))
+                              }
                               onClick={() => handleToggleStatus(course)}
+                              className={`w-11 h-11 rounded-2xl border inline-flex items-center justify-center disabled:opacity-50 transition ${
+                                course.status === 'published'
+                                  ? 'bg-white text-ink border-line-strong hover:bg-page hover:border-primary-hover'
+                                  : 'bg-success-light/60 text-success border-success/40 hover:bg-success-light'
+                              }`}
                             >
                               {course.status === 'published' ? (
-                                <>
-                                  <EyeOff className="w-4 h-4" aria-hidden="true" />
-                                  <span>Turunkan</span>
-                                </>
+                                <EyeOff className="w-5 h-5" aria-hidden="true" />
                               ) : (
-                                <>
-                                  <Globe className="w-4 h-4" aria-hidden="true" />
-                                  <span>Publikasikan</span>
-                                </>
+                                <Globe className="w-5 h-5" aria-hidden="true" />
                               )}
-                            </Button>
-                            <Button
-                              variant="dangerOutline"
-                              size="sm"
-                              disabled={guard.blocked || busyId === course.id}
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Hapus ${course.title}`}
                               aria-describedby={guard.blocked ? noteId : undefined}
+                              title={guard.blocked ? guard.shortReason : 'Hapus Course'}
+                              disabled={guard.blocked || busyId === course.id}
                               onClick={() => setDeleteTarget(course)}
+                              className="w-11 h-11 rounded-2xl bg-white text-danger-ink border-2 border-danger hover:bg-danger-light disabled:opacity-50 inline-flex items-center justify-center transition"
                             >
-                              <Trash2 className="w-4 h-4" aria-hidden="true" />
-                              <span>Hapus</span>
-                            </Button>
+                              <Trash2 className="w-5 h-5" aria-hidden="true" />
+                            </button>
                           </div>
                           {guard.blocked && (
-                            <span id={noteId} className="text-sm text-muted text-right">
+                            <span id={noteId} className="text-xs text-muted text-right">
                               {guard.shortReason}
                             </span>
                           )}
@@ -234,26 +305,48 @@ export function AdminCoursesClient({ initialCourses = [] }) {
                     <Link href={`/courses/${course.slug}`} className="min-h-11 inline-flex items-center font-semibold text-ink">
                       {course.title}
                     </Link>
-                    <StatusBadge status={course.status} />
+                    <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
+                      <StatusBadge status={course.status} />
+                      {Boolean(course.finalized_at) && <StatusBadge status="finalized" />}
+                    </div>
                   </div>
                   <p className="text-sm text-muted">
                     {course.teacher_name} · {course.total_materials} materi · {course.total_students} siswa
                     {course.active_students > 0 ? ` (${course.active_students} aktif)` : ''}
+                    {' · '}
+                    {formatCourseDateRange(course.start_date, course.end_date)}
                   </p>
                   <div className="grid grid-cols-2 gap-2 pt-1">
                     <Button
-                      href={`/admin/courses/${course.id}/materials`}
-                      variant="primary"
+                      href={`/admin/courses/${course.id}/edit`}
+                      variant="outline"
                       size="sm"
                       className="col-span-2"
                     >
-                      <Layers className="w-4 h-4" aria-hidden="true" />
-                      <span>Kelola Materi</span>
+                      <Pencil className="w-4 h-4" aria-hidden="true" />
+                      <span>Edit</span>
                     </Button>
+                    {course.status === 'published' &&
+                      !course.finalized_at &&
+                      course.total_materials > 0 && (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className="col-span-2"
+                          disabled={busyId === course.id}
+                          onClick={() => setFinalizeTarget(course)}
+                        >
+                          <Lock className="w-4 h-4" aria-hidden="true" />
+                          <span>Finalisasi Course</span>
+                        </Button>
+                      )}
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={busyId === course.id}
+                      disabled={
+                        busyId === course.id ||
+                        (course.status === 'published' && Boolean(course.finalized_at))
+                      }
                       onClick={() => handleToggleStatus(course)}
                     >
                       {course.status === 'published' ? 'Turunkan' : 'Publikasikan'}
@@ -292,6 +385,21 @@ export function AdminCoursesClient({ initialCourses = [] }) {
         }
         confirmLabel="Ya, Hapus Course"
         loading={busyId === deleteTarget?.id}
+      />
+
+      <ConfirmModal
+        open={Boolean(finalizeTarget)}
+        onClose={() => setFinalizeTarget(null)}
+        onConfirm={handleFinalize}
+        title="Finalisasi Course Ini?"
+        message={
+          finalizeTarget
+            ? `Setelah difinalisasi, seluruh materi pada "${finalizeTarget.title}" akan dikunci permanen dan sertifikat langsung diterbitkan bagi siswa yang telah selesai 100%.`
+            : ''
+        }
+        confirmLabel="Ya, Finalisasi Course"
+        confirmVariant="primary"
+        loading={busyId === finalizeTarget?.id}
       />
     </div>
   );

@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Eye, Layers, Pencil, Plus, Trash2 } from 'lucide-react';
+import { BookOpen, Eye, Layers, Lock, Pencil, Plus, Trash2 } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmModal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/ToastContext';
-import { getCourseDeleteGuard } from '@/lib/validators';
+import { formatCourseDateRange, getCourseDeleteGuard } from '@/lib/validators';
 
 export function TeacherCoursesClient({ initialCourses = [] }) {
   const router = useRouter();
@@ -17,6 +17,7 @@ export function TeacherCoursesClient({ initialCourses = [] }) {
   const [courses, setCourses] = useState(initialCourses);
   const [busyId, setBusyId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [finalizeTarget, setFinalizeTarget] = useState(null);
 
   const handleTogglePublish = async (course) => {
     const nextStatus = course.status === 'published' ? 'draft' : 'published';
@@ -69,6 +70,38 @@ export function TeacherCoursesClient({ initialCourses = [] }) {
     }
   };
 
+  const handleFinalize = async () => {
+    if (!finalizeTarget) return;
+    setBusyId(finalizeTarget.id);
+    try {
+      const res = await fetch(`/api/teacher/courses/${finalizeTarget.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'finalize' }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Gagal memfinalisasi course.');
+      }
+
+      setCourses((prev) =>
+        prev.map((c) =>
+          c.id === finalizeTarget.id
+            ? { ...c, finalized_at: json.data.course.finalized_at }
+            : c
+        )
+      );
+      showToast({ type: 'success', message: json.message });
+      setFinalizeTarget(null);
+      router.refresh();
+    } catch (err) {
+      showToast({ type: 'error', message: err.message || 'Gagal memfinalisasi course.' });
+      setFinalizeTarget(null);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -93,6 +126,7 @@ export function TeacherCoursesClient({ initialCourses = [] }) {
         <div className="space-y-4">
           {courses.map((course) => {
             const isPublished = course.status === 'published';
+            const isFinalized = Boolean(course.finalized_at);
             const isBusy = busyId === course.id;
             const guard = getCourseDeleteGuard(course);
             const noteId = `teacher-course-delete-note-${course.id}`;
@@ -105,6 +139,7 @@ export function TeacherCoursesClient({ initialCourses = [] }) {
                 <div className="space-y-2 min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge status={course.status} />
+                    {isFinalized && <StatusBadge status="finalized" />}
                     <StatusBadge status={course.level} />
                     <span className="text-sm font-medium text-muted">{course.category_name}</span>
                   </div>
@@ -120,6 +155,8 @@ export function TeacherCoursesClient({ initialCourses = [] }) {
                     {course.total_materials} Materi · {course.total_duration} menit ·{' '}
                     {course.total_students} Siswa terdaftar
                     {course.active_students > 0 ? ` (${course.active_students} aktif)` : ''}
+                    {' · '}
+                    {formatCourseDateRange(course.start_date, course.end_date)}
                   </p>
                   {guard.blocked && (
                     <p id={noteId} className="text-sm text-muted">
@@ -128,18 +165,37 @@ export function TeacherCoursesClient({ initialCourses = [] }) {
                   )}
                 </div>
 
-                <div className="flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-end gap-4 shrink-0">
+                <div className="flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-end gap-3 shrink-0">
+                  {isPublished && !isFinalized && course.total_materials > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isBusy}
+                      onClick={() => setFinalizeTarget(course)}
+                    >
+                      <Lock className="w-4 h-4" aria-hidden="true" />
+                      <span>Finalisasi</span>
+                    </Button>
+                  )}
+
                   {/* Publish / Draft Switch Toggle */}
                   <button
                     type="button"
                     role="switch"
                     aria-checked={isPublished}
                     aria-label={
-                      isPublished
+                      isFinalized
+                        ? `${course.title} sudah final`
+                        : isPublished
                         ? `Ubah status ${course.title} ke Draft`
                         : `Publikasikan ${course.title}`
                     }
-                    disabled={isBusy}
+                    title={
+                      isFinalized
+                        ? 'Course sudah final dan tidak dapat dikembalikan ke draft'
+                        : undefined
+                    }
+                    disabled={isBusy || isFinalized}
                     onClick={() => handleTogglePublish(course)}
                     className="min-h-11 px-3 py-1.5 rounded-full border border-line bg-page inline-flex items-center gap-2.5 text-sm font-semibold text-ink hover:border-primary/50 disabled:opacity-50 transition"
                   >
@@ -215,6 +271,21 @@ export function TeacherCoursesClient({ initialCourses = [] }) {
         }
         confirmLabel="Ya, Hapus Course"
         loading={busyId === deleteTarget?.id}
+      />
+
+      <ConfirmModal
+        open={Boolean(finalizeTarget)}
+        onClose={() => setFinalizeTarget(null)}
+        onConfirm={handleFinalize}
+        title="Finalisasi Course Ini?"
+        message={
+          finalizeTarget
+            ? `Setelah difinalisasi, seluruh materi pada "${finalizeTarget.title}" akan dikunci permanen dan sertifikat langsung diterbitkan bagi siswa yang telah selesai 100%.`
+            : ''
+        }
+        confirmLabel="Ya, Finalisasi Course"
+        confirmVariant="primary"
+        loading={busyId === finalizeTarget?.id}
       />
     </div>
   );

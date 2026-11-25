@@ -14,7 +14,8 @@ export async function listMaterialsForCourse(courseId) {
 export async function getMaterialWithCourse(materialId) {
   const res = await query(
     `SELECT m.id, m.course_id, m.title, m.content, m.video_url, m.position, m.duration_minutes,
-            c.teacher_id, c.slug AS course_slug, c.title AS course_title, c.status AS course_status
+            c.teacher_id, c.slug AS course_slug, c.title AS course_title, c.status AS course_status,
+            c.finalized_at AS course_finalized_at
      FROM materials m
      JOIN courses c ON c.id = m.course_id
      WHERE m.id = $1
@@ -45,6 +46,35 @@ export async function addMaterialToCourse(courseId, { title, content, video_url,
     );
 
     await client.query(`UPDATE courses SET updated_at = NOW() WHERE id = $1`, [courseId]);
+
+    const courseRes = await client.query(
+      `SELECT title, status
+       FROM courses
+       WHERE id = $1
+       LIMIT 1`,
+      [courseId]
+    );
+    const courseInfo = courseRes.rows[0];
+
+    if (courseInfo?.status === 'published') {
+      const completedTitle = 'Materi Baru Ditambahkan';
+      const completedMessage = `Pengajar menambahkan materi baru "${title}" di course "${courseInfo.title}". Sertifikat Anda tetap sah dan aktif, dan Anda dapat mempelajari materi tambahan ini kapan saja.`;
+      const activeTitle = 'Materi Baru Tersedia';
+      const activeMessage = `Materi baru "${title}" telah ditambahkan ke course "${courseInfo.title}". Lanjutkan belajar untuk menyelesaikannya.`;
+
+      await client.query(
+        `INSERT INTO notifications (user_id, title, message)
+         SELECT
+           e.student_id,
+           CASE WHEN cert.id IS NOT NULL OR e.status = 'completed' THEN $2::varchar ELSE $3::varchar END,
+           CASE WHEN cert.id IS NOT NULL OR e.status = 'completed' THEN $4::text ELSE $5::text END
+         FROM enrollments e
+         LEFT JOIN certificates cert ON cert.enrollment_id = e.id
+         WHERE e.course_id = $1`,
+        [courseId, completedTitle, activeTitle, completedMessage, activeMessage]
+      );
+    }
+
     await client.query('COMMIT');
     return insertRes.rows[0];
   } catch (err) {
@@ -55,15 +85,96 @@ export async function addMaterialToCourse(courseId, { title, content, video_url,
   }
 }
 
-export async function updateMaterialById(materialId, { title, content, video_url, duration_minutes }) {
-  const res = await query(
-    `UPDATE materials
-     SET title = $1, content = $2, video_url = $3, duration_minutes = $4
-     WHERE id = $5
-     RETURNING id, course_id, title, content, video_url, position, duration_minutes, created_at`,
-    [title, content, video_url, duration_minutes, materialId]
-  );
-  return res.rows[0] || null;
+export async function updateMaterialById(
+  materialId,
+  { title, content, video_url, duration_minutes, position = null }
+) {
+  const client = await getClient();
+  try {
+    await client.query('BEGIN');
+
+    const curRes = await client.query(
+      `SELECT id, course_id, position
+       FROM materials
+       WHERE id = $1
+       FOR UPDATE`,
+      [materialId]
+    );
+    const current = curRes.rows[0];
+    if (!current) {
+      await client.query('COMMIT');
+      return null;
+    }
+
+    if (position !== null && position !== undefined) {
+      const countRes = await client.query(
+        `SELECT COUNT(*)::int AS total FROM materials WHERE course_id = $1`,
+        [current.course_id]
+      );
+      const total = countRes.rows[0]?.total || 1;
+      const targetPos = Math.max(1, Math.min(total, Number(position)));
+
+      if (targetPos < current.position) {
+        await client.query(
+          `UPDATE materials
+           SET position = position + 1
+           WHERE course_id = $1 AND position >= $2 AND position < $3`,
+          [current.course_id, targetPos, current.position]
+        );
+      } else if (targetPos > current.position) {
+        await client.query(
+          `UPDATE materials
+           SET position = position - 1
+           WHERE course_id = $1 AND position > $2 AND position <= $3`,
+          [current.course_id, current.position, targetPos]
+        );
+      }
+
+      await client.query(
+        `UPDATE materials
+         SET title = $1, content = $2, video_url = $3, duration_minutes = $4, position = $5
+         WHERE id = $6`,
+        [title, content, video_url, duration_minutes, targetPos, materialId]
+      );
+    } else {
+      await client.query(
+        `UPDATE materials
+         SET title = $1, content = $2, video_url = $3, duration_minutes = $4
+         WHERE id = $5`,
+        [title, content, video_url, duration_minutes, materialId]
+      );
+    }
+
+    await client.query(`UPDATE courses SET updated_at = NOW() WHERE id = $1`, [
+      current.course_id,
+    ]);
+
+    const updatedRes = await client.query(
+      `SELECT id, course_id, title, content, video_url, position, duration_minutes, created_at
+       FROM materials
+       WHERE id = $1`,
+      [materialId]
+    );
+
+    const listRes = await client.query(
+      `SELECT id, course_id, title, content, video_url, position, duration_minutes, created_at
+       FROM materials
+       WHERE course_id = $1
+       ORDER BY position ASC`,
+      [current.course_id]
+    );
+
+    await client.query('COMMIT');
+    return {
+      material: updatedRes.rows[0] || null,
+      materials: listRes.rows,
+    };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 /**
@@ -140,7 +251,7 @@ export async function deleteMaterialAndCompact(materialId, courseId) {
  */
 export async function getLearningWorkspaceData(courseSlug, materialIdParam, currentUser) {
   const courseRes = await query(
-    `SELECT c.id, c.teacher_id, c.title, c.slug, c.level, c.status,
+    `SELECT c.id, c.teacher_id, c.title, c.slug, c.level, c.status, c.finalized_at,
             u.name AS teacher_name, cat.name AS category_name
      FROM courses c
      JOIN users u ON u.id = c.teacher_id

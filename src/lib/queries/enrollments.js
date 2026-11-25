@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { query, getClient } from '@/lib/db';
+import { getCourseScheduleState } from '@/lib/validators';
 
 export async function listStudentEnrollments(studentId) {
   const res = await query(
@@ -13,7 +14,9 @@ export async function listStudentEnrollments(studentId) {
        c.slug,
        c.level,
        c.thumbnail_url,
+       c.finalized_at,
        u.name AS teacher_name,
+       u.email AS teacher_email,
        u.avatar_url AS teacher_avatar,
        cat.name AS category_name,
        COUNT(DISTINCT m.id)::int AS total_materials,
@@ -50,7 +53,7 @@ export async function listStudentEnrollments(studentId) {
      LEFT JOIN material_progress mp ON mp.enrollment_id = e.id AND mp.material_id = m.id
      LEFT JOIN certificates cert ON cert.enrollment_id = e.id
      WHERE e.student_id = $1
-     GROUP BY e.id, c.id, u.name, u.avatar_url, cat.name, cert.certificate_code
+     GROUP BY e.id, c.id, u.name, u.email, u.avatar_url, cat.name, cert.certificate_code
      ORDER BY e.enrolled_at DESC`,
     [studentId]
   );
@@ -59,13 +62,34 @@ export async function listStudentEnrollments(studentId) {
 
 export async function enrollStudentInCourse(studentId, courseId) {
   const courseRes = await query(
-    `SELECT id, slug, title, status FROM courses WHERE id = $1 LIMIT 1`,
+    `SELECT id, slug, title, status,
+            TO_CHAR(start_date, 'YYYY-MM-DD') AS start_date,
+            TO_CHAR(end_date, 'YYYY-MM-DD') AS end_date
+     FROM courses
+     WHERE id = $1
+     LIMIT 1`,
     [courseId]
   );
   const course = courseRes.rows[0];
   if (!course || course.status !== 'published') {
     const err = new Error('COURSE_NOT_AVAILABLE');
     err.code = 'COURSE_NOT_AVAILABLE';
+    throw err;
+  }
+
+  const schedule = getCourseScheduleState(course);
+  if (schedule.state === 'upcoming') {
+    const err = new Error('COURSE_NOT_STARTED');
+    err.code = 'COURSE_NOT_STARTED';
+    err.startDate = schedule.startDate;
+    err.startDateLabel = schedule.startDateLabel;
+    throw err;
+  }
+  if (schedule.state === 'ended') {
+    const err = new Error('COURSE_ENDED');
+    err.code = 'COURSE_ENDED';
+    err.endDate = schedule.endDate;
+    err.endDateLabel = schedule.endDateLabel;
     throw err;
   }
 
@@ -84,9 +108,25 @@ function generateCertificateCode() {
   return `ACAD-${year}-${suffix}`;
 }
 
+export async function issueCertificateForEnrollment(client, enrollmentId) {
+  const generatedCode = generateCertificateCode();
+  await client.query(
+    `INSERT INTO certificates (enrollment_id, certificate_code)
+     VALUES ($1, $2)
+     ON CONFLICT (enrollment_id) DO NOTHING`,
+    [enrollmentId, generatedCode]
+  );
+
+  const certRes = await client.query(
+    `SELECT certificate_code FROM certificates WHERE enrollment_id = $1`,
+    [enrollmentId]
+  );
+  return certRes.rows[0]?.certificate_code || null;
+}
+
 /**
  * Transaction C: Toggle material completion, recompute dynamic progress_percent,
- * and auto-issue or revert enrollment completion and certificate status.
+ * mark enrollment completed at 100%, and issue certificate only when the course is finalized.
  */
 export async function toggleMaterialProgress({ studentId, courseId, materialId }) {
   const client = await getClient();
@@ -94,7 +134,11 @@ export async function toggleMaterialProgress({ studentId, courseId, materialId }
     await client.query('BEGIN');
 
     const enrollRes = await client.query(
-      `SELECT id FROM enrollments WHERE student_id = $1 AND course_id = $2 LIMIT 1`,
+      `SELECT e.id, c.finalized_at
+       FROM enrollments e
+       JOIN courses c ON c.id = e.course_id
+       WHERE e.student_id = $1 AND e.course_id = $2
+       LIMIT 1`,
       [studentId, courseId]
     );
     if (enrollRes.rowCount === 0) {
@@ -103,6 +147,7 @@ export async function toggleMaterialProgress({ studentId, courseId, materialId }
       throw err;
     }
     const enrollmentId = enrollRes.rows[0].id;
+    const isFinalized = Boolean(enrollRes.rows[0].finalized_at);
 
     const matRes = await client.query(
       `SELECT id FROM materials WHERE id = $1 AND course_id = $2 LIMIT 1`,
@@ -121,20 +166,23 @@ export async function toggleMaterialProgress({ studentId, courseId, materialId }
       [enrollmentId, materialId]
     );
 
-    let isCompleted = true;
+    const isCompleted = true;
     if (existing.rowCount === 0) {
       await client.query(
         `INSERT INTO material_progress (enrollment_id, material_id, is_completed, completed_at)
          VALUES ($1, $2, TRUE, NOW())`,
         [enrollmentId, materialId]
       );
+    } else if (existing.rows[0].is_completed) {
+      const err = new Error('ALREADY_COMPLETED');
+      err.code = 'ALREADY_COMPLETED';
+      throw err;
     } else {
-      isCompleted = !existing.rows[0].is_completed;
       await client.query(
         `UPDATE material_progress
-         SET is_completed = $1, completed_at = CASE WHEN $1 THEN NOW() ELSE NULL END
-         WHERE id = $2`,
-        [isCompleted, existing.rows[0].id]
+         SET is_completed = TRUE, completed_at = NOW()
+         WHERE id = $1`,
+        [existing.rows[0].id]
       );
     }
 
@@ -155,7 +203,8 @@ export async function toggleMaterialProgress({ studentId, courseId, materialId }
     const { total_materials, completed_materials, progress_percent } = progRes.rows[0];
 
     let certificateCode = null;
-    if (progress_percent === 100 && total_materials > 0) {
+    const courseCompleted = progress_percent === 100 && total_materials > 0;
+    if (courseCompleted) {
       await client.query(
         `UPDATE enrollments
          SET status = 'completed', completed_at = COALESCE(completed_at, NOW())
@@ -163,19 +212,15 @@ export async function toggleMaterialProgress({ studentId, courseId, materialId }
         [enrollmentId]
       );
 
-      const generatedCode = generateCertificateCode();
-      await client.query(
-        `INSERT INTO certificates (enrollment_id, certificate_code)
-         VALUES ($1, $2)
-         ON CONFLICT (enrollment_id) DO NOTHING`,
-        [enrollmentId, generatedCode]
-      );
-
-      const certRes = await client.query(
-        `SELECT certificate_code FROM certificates WHERE enrollment_id = $1`,
-        [enrollmentId]
-      );
-      certificateCode = certRes.rows[0]?.certificate_code || null;
+      if (isFinalized) {
+        certificateCode = await issueCertificateForEnrollment(client, enrollmentId);
+      } else {
+        const existingCertRes = await client.query(
+          `SELECT certificate_code FROM certificates WHERE enrollment_id = $1`,
+          [enrollmentId]
+        );
+        certificateCode = existingCertRes.rows[0]?.certificate_code || null;
+      }
     } else {
       await client.query(
         `UPDATE enrollments
@@ -191,7 +236,9 @@ export async function toggleMaterialProgress({ studentId, courseId, materialId }
       total_materials,
       completed_materials,
       progress_percent,
-      course_completed: progress_percent === 100 && total_materials > 0,
+      course_completed: courseCompleted,
+      is_finalized: isFinalized,
+      certificate_pending_finalization: courseCompleted && !isFinalized && !certificateCode,
       certificate_code: certificateCode,
     };
   } catch (err) {

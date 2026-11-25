@@ -15,6 +15,7 @@ export function MarkAsDoneButton({
   const [loading, setLoading] = useState(false);
 
   const handleToggle = async () => {
+    if (completed || loading) return;
     setLoading(true);
     try {
       const res = await fetch('/api/progress/toggle', {
@@ -46,12 +47,13 @@ export function MarkAsDoneButton({
     <button
       type="button"
       onClick={handleToggle}
-      disabled={loading}
+      disabled={loading || completed}
       aria-pressed={completed}
-      className={`inline-flex items-center justify-center gap-2 min-h-12 px-7 rounded-full font-semibold text-base transition disabled:opacity-60 ${
+      title={completed ? 'Materi sudah ditandai selesai' : undefined}
+      className={`inline-flex items-center justify-center gap-2 min-h-12 px-7 rounded-full font-semibold text-base transition ${
         completed
-          ? 'bg-success-light text-success border-2 border-success hover:bg-green-200/70'
-          : 'bg-success text-white hover:bg-green-800 shadow-xs'
+          ? 'bg-success-light text-success border-2 border-success cursor-default'
+          : 'bg-success text-white hover:bg-green-800 shadow-xs disabled:opacity-60'
       }`}
     >
       {completed ? (

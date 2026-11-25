@@ -19,7 +19,7 @@ async function verifyCourseOwnership(courseId, user) {
       ),
     };
   }
-  if (user.role !== 'admin' && Number(course.teacher_id) !== Number(user.id)) {
+  if (Number(course.teacher_id) !== Number(user.id)) {
     return {
       course: null,
       errorResponse: NextResponse.json(
@@ -32,7 +32,7 @@ async function verifyCourseOwnership(courseId, user) {
 }
 
 export async function GET(_request, context) {
-  const { user, errorResponse } = await requireApiRole(['teacher', 'admin']);
+  const { user, errorResponse } = await requireApiRole(['teacher']);
   if (errorResponse) return errorResponse;
 
   const { id } = await context.params;
@@ -49,7 +49,7 @@ export async function GET(_request, context) {
 }
 
 export async function POST(request, context) {
-  const { user, errorResponse } = await requireApiRole(['teacher', 'admin']);
+  const { user, errorResponse } = await requireApiRole(['teacher']);
   if (errorResponse) return errorResponse;
 
   try {
@@ -61,6 +61,15 @@ export async function POST(request, context) {
 
     const check = await verifyCourseOwnership(courseId, user);
     if (check.errorResponse) return check.errorResponse;
+    if (check.course.finalized_at) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Course sudah difinalisasi sehingga materi tidak dapat ditambahkan lagi.',
+        },
+        { status: 400 }
+      );
+    }
 
     const body = await request.json().catch(() => null);
     const validation = validateMaterialPayload(body);
@@ -89,7 +98,7 @@ export async function POST(request, context) {
 }
 
 export async function PATCH(request, context) {
-  const { user, errorResponse } = await requireApiRole(['teacher', 'admin']);
+  const { user, errorResponse } = await requireApiRole(['teacher']);
   if (errorResponse) return errorResponse;
 
   try {
@@ -101,6 +110,15 @@ export async function PATCH(request, context) {
 
     const check = await verifyCourseOwnership(courseId, user);
     if (check.errorResponse) return check.errorResponse;
+    if (check.course.finalized_at) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Course sudah difinalisasi sehingga materi tidak dapat ditambahkan lagi.',
+        },
+        { status: 400 }
+      );
+    }
 
     const body = await request.json().catch(() => null);
     const orderedIds = Array.isArray(body?.orderedIds)

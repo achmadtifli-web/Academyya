@@ -1,10 +1,13 @@
 import {
+  Award,
+  Calendar,
   CheckCircle2,
   Clock,
   EyeOff,
   FileEdit,
   Globe,
   Layers,
+  Lock,
   Shield,
   Sparkles,
   User,
@@ -82,6 +85,26 @@ const STATUS_MAP = {
     label: 'Tersembunyi',
     classes: 'bg-page text-muted border-line-strong',
     Icon: EyeOff,
+  },
+  upcoming: {
+    label: 'Segera Dimulai',
+    classes: 'bg-accent-light text-ink border-accent-dark/30',
+    Icon: Calendar,
+  },
+  ended: {
+    label: 'Berakhir',
+    classes: 'bg-page text-muted border-line-strong',
+    Icon: Clock,
+  },
+  finalized: {
+    label: 'Final',
+    classes: 'bg-purple-light text-purple border-purple/25',
+    Icon: Lock,
+  },
+  certified: {
+    label: 'Bersertifikat',
+    classes: 'bg-success-light text-success border-success/25',
+    Icon: Award,
   },
 };
 

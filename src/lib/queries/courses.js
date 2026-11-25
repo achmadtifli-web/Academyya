@@ -1,4 +1,5 @@
 import { getClient, query } from '@/lib/db';
+import { issueCertificateForEnrollment } from '@/lib/queries/enrollments';
 import { getCourseDeleteGuard, slugify } from '@/lib/validators';
 
 export async function getPlatformStats() {
@@ -14,6 +15,9 @@ export async function getPlatformStats() {
 export async function listPopularCourses(limit = 4) {
   const res = await query(
     `SELECT c.id, c.title, c.slug, c.description, c.level, c.thumbnail_url, c.created_at,
+            c.finalized_at,
+            TO_CHAR(c.start_date, 'YYYY-MM-DD') AS start_date,
+            TO_CHAR(c.end_date, 'YYYY-MM-DD') AS end_date,
             u.id AS teacher_id, u.name AS teacher_name, u.avatar_url AS teacher_avatar,
             cat.id AS category_id, cat.name AS category_name, cat.slug AS category_slug, cat.icon AS category_icon,
             COUNT(DISTINCT m.id)::int AS total_materials,
@@ -52,6 +56,9 @@ export async function searchCatalogCourses({
   const res = await query(
     `SELECT
        c.id, c.title, c.slug, c.description, c.level, c.thumbnail_url, c.created_at,
+       c.finalized_at,
+       TO_CHAR(c.start_date, 'YYYY-MM-DD') AS start_date,
+       TO_CHAR(c.end_date, 'YYYY-MM-DD') AS end_date,
        u.id AS teacher_id, u.name AS teacher_name, u.avatar_url AS teacher_avatar,
        cat.id AS category_id, cat.name AS category_name, cat.slug AS category_slug, cat.icon AS category_icon,
        COUNT(DISTINCT m.id)::int AS total_materials,
@@ -92,8 +99,11 @@ export async function searchCatalogCourses({
 export async function getCourseDetailBySlug(slug, currentUser = null) {
   const courseRes = await query(
     `SELECT c.id, c.teacher_id, c.category_id, c.title, c.slug, c.description,
-            c.thumbnail_url, c.level, c.status, c.created_at, c.updated_at,
-            u.name AS teacher_name, u.avatar_url AS teacher_avatar, u.bio AS teacher_bio,
+            c.thumbnail_url, c.level, c.status, c.finalized_at,
+            TO_CHAR(c.start_date, 'YYYY-MM-DD') AS start_date,
+            TO_CHAR(c.end_date, 'YYYY-MM-DD') AS end_date,
+            c.created_at, c.updated_at,
+            u.name AS teacher_name, u.email AS teacher_email, u.avatar_url AS teacher_avatar, u.bio AS teacher_bio,
             cat.name AS category_name, cat.slug AS category_slug,
             COUNT(DISTINCT e.id)::int AS total_students
      FROM courses c
@@ -101,7 +111,7 @@ export async function getCourseDetailBySlug(slug, currentUser = null) {
      JOIN categories cat ON cat.id = c.category_id
      LEFT JOIN enrollments e ON e.course_id = c.id
      WHERE c.slug = $1
-     GROUP BY c.id, u.name, u.avatar_url, u.bio, cat.name, cat.slug
+     GROUP BY c.id, u.name, u.email, u.avatar_url, u.bio, cat.name, cat.slug
      LIMIT 1`,
     [slug]
   );
@@ -191,7 +201,10 @@ async function generateUniqueCourseSlug(title, excludeId = null) {
 export async function listTeacherCourses(teacherId) {
   const res = await query(
     `SELECT c.id, c.teacher_id, c.category_id, c.title, c.slug, c.description,
-            c.thumbnail_url, c.level, c.status, c.created_at, c.updated_at,
+            c.thumbnail_url, c.level, c.status, c.finalized_at,
+            TO_CHAR(c.start_date, 'YYYY-MM-DD') AS start_date,
+            TO_CHAR(c.end_date, 'YYYY-MM-DD') AS end_date,
+            c.created_at, c.updated_at,
             cat.name AS category_name,
             COUNT(DISTINCT m.id)::int AS total_materials,
             COALESCE(SUM(m.duration_minutes), 0)::int AS total_duration,
@@ -212,7 +225,10 @@ export async function listTeacherCourses(teacherId) {
 export async function getCourseById(courseId) {
   const res = await query(
     `SELECT c.id, c.teacher_id, c.category_id, c.title, c.slug, c.description,
-            c.thumbnail_url, c.level, c.status, c.created_at, c.updated_at,
+            c.thumbnail_url, c.level, c.status, c.finalized_at,
+            TO_CHAR(c.start_date, 'YYYY-MM-DD') AS start_date,
+            TO_CHAR(c.end_date, 'YYYY-MM-DD') AS end_date,
+            c.created_at, c.updated_at,
             cat.name AS category_name, u.name AS teacher_name,
             (SELECT COUNT(*)::int FROM materials m WHERE m.course_id = c.id) AS total_materials
      FROM courses c
@@ -232,13 +248,20 @@ export async function createTeacherCourse({
   category_id,
   level,
   thumbnail_url,
+  start_date = null,
+  end_date = null,
 }) {
   const slug = await generateUniqueCourseSlug(title);
   const res = await query(
-    `INSERT INTO courses (teacher_id, category_id, title, slug, description, thumbnail_url, level, status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, 'draft')
-     RETURNING id, teacher_id, category_id, title, slug, description, thumbnail_url, level, status, created_at, updated_at`,
-    [teacherId, category_id, title, slug, description, thumbnail_url, level]
+    `INSERT INTO courses (
+       teacher_id, category_id, title, slug, description, thumbnail_url, level, status, start_date, end_date
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 'draft', $8, $9)
+     RETURNING id, teacher_id, category_id, title, slug, description, thumbnail_url, level, status,
+               TO_CHAR(start_date, 'YYYY-MM-DD') AS start_date,
+               TO_CHAR(end_date, 'YYYY-MM-DD') AS end_date,
+               created_at, updated_at`,
+    [teacherId, category_id, title, slug, description, thumbnail_url, level, start_date, end_date]
   );
   return res.rows[0];
 }
@@ -259,20 +282,29 @@ export async function updateCourseDetails(courseId, fields) {
          slug = $2,
          description = $3,
          category_id = $4,
-         level = $5,
-         thumbnail_url = $6,
-         status = $7,
+         teacher_id = $5,
+         level = $6,
+         thumbnail_url = $7,
+         status = $8,
+         start_date = $9,
+         end_date = $10,
          updated_at = NOW()
-     WHERE id = $8
-     RETURNING id, teacher_id, category_id, title, slug, description, thumbnail_url, level, status, created_at, updated_at`,
+     WHERE id = $11
+     RETURNING id, teacher_id, category_id, title, slug, description, thumbnail_url, level, status,
+               TO_CHAR(start_date, 'YYYY-MM-DD') AS start_date,
+               TO_CHAR(end_date, 'YYYY-MM-DD') AS end_date,
+               created_at, updated_at`,
     [
       nextTitle,
       nextSlug,
       fields.description ?? existing.description,
       fields.category_id ?? existing.category_id,
+      fields.teacher_id ?? existing.teacher_id,
       fields.level ?? existing.level,
       fields.thumbnail_url !== undefined ? fields.thumbnail_url : existing.thumbnail_url,
       fields.status ?? existing.status,
+      fields.start_date !== undefined ? fields.start_date : existing.start_date,
+      fields.end_date !== undefined ? fields.end_date : existing.end_date,
       courseId,
     ]
   );
@@ -334,7 +366,10 @@ export async function listCoursesForAdmin({ q = null, status = null } = {}) {
   const cleanStatus = ['draft', 'published'].includes(status) ? status : null;
 
   const res = await query(
-    `SELECT c.id, c.title, c.slug, c.level, c.status, c.created_at, c.updated_at,
+    `SELECT c.id, c.title, c.slug, c.level, c.status, c.finalized_at,
+            TO_CHAR(c.start_date, 'YYYY-MM-DD') AS start_date,
+            TO_CHAR(c.end_date, 'YYYY-MM-DD') AS end_date,
+            c.created_at, c.updated_at,
             u.id AS teacher_id, u.name AS teacher_name, u.email AS teacher_email,
             cat.name AS category_name,
             COUNT(DISTINCT m.id)::int AS total_materials,
@@ -367,4 +402,101 @@ export async function getTeacherDashboardSummary(teacherId) {
     [teacherId]
   );
   return res.rows[0];
+}
+
+/**
+ * Finalize a published course in one atomic transaction:
+ * lock the course row, set finalized_at, issue certificates to all 100% students, and notify them.
+ */
+export async function finalizeCourseById(courseId) {
+  const client = await getClient();
+  try {
+    await client.query('BEGIN');
+
+    const courseRes = await client.query(
+      `SELECT c.id, c.title, c.status, c.finalized_at,
+              (SELECT COUNT(*)::int FROM materials m WHERE m.course_id = c.id) AS total_materials
+       FROM courses c
+       WHERE c.id = $1
+       FOR UPDATE`,
+      [courseId]
+    );
+    const course = courseRes.rows[0];
+    if (!course) {
+      await client.query('COMMIT');
+      return { status: 'NOT_FOUND' };
+    }
+    if (course.finalized_at) {
+      await client.query('COMMIT');
+      return { status: 'ALREADY_FINALIZED' };
+    }
+    if (course.status !== 'published') {
+      await client.query('COMMIT');
+      return { status: 'NOT_PUBLISHED' };
+    }
+    if (course.total_materials < 1) {
+      await client.query('COMMIT');
+      return { status: 'NO_MATERIALS' };
+    }
+
+    const updatedRes = await client.query(
+      `UPDATE courses
+       SET finalized_at = NOW(), updated_at = NOW()
+       WHERE id = $1
+       RETURNING id, teacher_id, category_id, title, slug, description, thumbnail_url, level, status,
+                 finalized_at,
+                 TO_CHAR(start_date, 'YYYY-MM-DD') AS start_date,
+                 TO_CHAR(end_date, 'YYYY-MM-DD') AS end_date,
+                 created_at, updated_at`,
+      [courseId]
+    );
+
+    const eligibleRes = await client.query(
+      `SELECT e.id AS enrollment_id, e.student_id
+       FROM enrollments e
+       LEFT JOIN certificates cert ON cert.enrollment_id = e.id
+       WHERE e.course_id = $1
+         AND cert.id IS NULL
+         AND (
+           SELECT COUNT(DISTINCT mp.material_id)::int
+           FROM material_progress mp
+           JOIN materials m ON m.id = mp.material_id AND m.course_id = $1
+           WHERE mp.enrollment_id = e.id AND mp.is_completed = TRUE
+         ) >= $2`,
+      [courseId, course.total_materials]
+    );
+
+    let issuedCount = 0;
+    for (const row of eligibleRes.rows) {
+      await client.query(
+        `UPDATE enrollments
+         SET status = 'completed', completed_at = COALESCE(completed_at, NOW())
+         WHERE id = $1`,
+        [row.enrollment_id]
+      );
+      await issueCertificateForEnrollment(client, row.enrollment_id);
+      await client.query(
+        `INSERT INTO notifications (user_id, title, message)
+         VALUES ($1, $2, $3)`,
+        [
+          row.student_id,
+          'Course Difinalisasi & Sertifikat Terbit',
+          `Course "${course.title}" telah difinalisasi. Selamat, sertifikat digital Anda kini sudah terbit dan dapat diakses!`,
+        ]
+      );
+      issuedCount += 1;
+    }
+
+    await client.query('COMMIT');
+    return {
+      status: 'FINALIZED',
+      course: updatedRes.rows[0],
+      issued_count: issuedCount,
+    };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }

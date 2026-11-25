@@ -8,6 +8,7 @@ import {
   Clock,
   Eye,
   Globe,
+  Lock,
   Pencil,
   Plus,
   Trash2,
@@ -16,7 +17,7 @@ import {
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { InputField, TextareaField } from '@/components/ui/Input';
+import { InputField, SelectField, TextareaField } from '@/components/ui/Input';
 import { ConfirmModal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/ToastContext';
 
@@ -27,6 +28,7 @@ export function MaterialManagerClient({ initialCourse, initialMaterials = [] }) 
 
   const [editingId, setEditingId] = useState(null);
   const [title, setTitle] = useState('');
+  const [position, setPosition] = useState('1');
   const [duration, setDuration] = useState('15');
   const [videoUrl, setVideoUrl] = useState('');
   const [content, setContent] = useState('');
@@ -35,12 +37,16 @@ export function MaterialManagerClient({ initialCourse, initialMaterials = [] }) 
 
   const [reordering, setReordering] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [finalizeOpen, setFinalizeOpen] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const isFinalized = Boolean(course.finalized_at);
 
   const resetForm = () => {
     setEditingId(null);
     setTitle('');
+    setPosition('1');
     setDuration('15');
     setVideoUrl('');
     setContent('');
@@ -50,6 +56,7 @@ export function MaterialManagerClient({ initialCourse, initialMaterials = [] }) 
   const startEdit = (mat) => {
     setEditingId(mat.id);
     setTitle(mat.title);
+    setPosition(String(mat.position ?? 1));
     setDuration(String(mat.duration_minutes ?? 0));
     setVideoUrl(mat.video_url || '');
     setContent(mat.content || '');
@@ -67,15 +74,20 @@ export function MaterialManagerClient({ initialCourse, initialMaterials = [] }) 
         : `/api/teacher/courses/${course.id}/materials`;
       const method = editingId ? 'PUT' : 'POST';
 
+      const payload = {
+        title,
+        duration_minutes: duration === '' ? 0 : Number(duration),
+        video_url: videoUrl,
+        content,
+      };
+      if (editingId) {
+        payload.position = Number(position);
+      }
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          duration_minutes: duration === '' ? 0 : Number(duration),
-          video_url: videoUrl,
-          content,
-        }),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -84,9 +96,13 @@ export function MaterialManagerClient({ initialCourse, initialMaterials = [] }) 
       }
 
       if (editingId) {
-        setMaterials((prev) =>
-          prev.map((m) => (m.id === editingId ? json.data.material : m))
-        );
+        if (Array.isArray(json.data.materials)) {
+          setMaterials(json.data.materials);
+        } else {
+          setMaterials((prev) =>
+            prev.map((m) => (m.id === editingId ? json.data.material : m))
+          );
+        }
       } else {
         setMaterials((prev) => [...prev, json.data.material]);
       }
@@ -179,6 +195,32 @@ export function MaterialManagerClient({ initialCourse, initialMaterials = [] }) 
     }
   };
 
+  const handleFinalizeCourse = async () => {
+    setFinalizing(true);
+    try {
+      const res = await fetch(`/api/teacher/courses/${course.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'finalize' }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Gagal memfinalisasi course.');
+      }
+      setCourse((prev) => ({
+        ...prev,
+        finalized_at: json.data.course.finalized_at,
+      }));
+      setEditingId(null);
+      setFinalizeOpen(false);
+      showToast({ type: 'success', message: json.message });
+    } catch (err) {
+      showToast({ type: 'error', message: err.message || 'Gagal memfinalisasi course.' });
+    } finally {
+      setFinalizing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Controls */}
@@ -186,6 +228,7 @@ export function MaterialManagerClient({ initialCourse, initialMaterials = [] }) 
         <div className="space-y-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={course.status} />
+            {isFinalized && <StatusBadge status="finalized" />}
             <span className="text-sm text-muted">{materials.length} materi</span>
           </div>
           <h2 className="font-heading text-xl font-bold text-ink">{course.title}</h2>
@@ -196,22 +239,47 @@ export function MaterialManagerClient({ initialCourse, initialMaterials = [] }) 
             <Eye className="w-4 h-4" aria-hidden="true" />
             <span>Pratinjau Kelas</span>
           </Button>
-          <Button
-            variant={course.status === 'published' ? 'outline' : 'success'}
-            size="sm"
-            loading={publishing}
-            onClick={handleTogglePublish}
-          >
-            <Globe className="w-4 h-4" aria-hidden="true" />
-            <span>
-              {course.status === 'published' ? 'Simpan ke Draft' : 'Publikasikan Course'}
-            </span>
-          </Button>
+          {!isFinalized && (
+            <Button
+              variant={course.status === 'published' ? 'outline' : 'success'}
+              size="sm"
+              loading={publishing}
+              onClick={handleTogglePublish}
+            >
+              <Globe className="w-4 h-4" aria-hidden="true" />
+              <span>
+                {course.status === 'published' ? 'Simpan ke Draft' : 'Publikasikan Course'}
+              </span>
+            </Button>
+          )}
+          {course.status === 'published' && !isFinalized && materials.length > 0 && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setFinalizeOpen(true)}
+            >
+              <Lock className="w-4 h-4" aria-hidden="true" />
+              <span>Finalisasi Course</span>
+            </Button>
+          )}
         </div>
       </div>
 
       <div className="grid lg:grid-cols-12 gap-6 items-start">
-        {/* Add / Edit Material Form */}
+        {/* Add / Edit Material Form or Finalized Lock Notice */}
+        {isFinalized ? (
+          <div className="lg:col-span-5 rounded-3xl bg-white border border-purple/30 p-6 space-y-3">
+            <div className="w-11 h-11 rounded-2xl bg-purple-light text-purple flex items-center justify-center">
+              <Lock className="w-5 h-5" aria-hidden="true" />
+            </div>
+            <h3 className="font-heading text-lg font-semibold text-ink">
+              Materi Terkunci (Course Final)
+            </h3>
+            <p className="text-sm text-muted leading-relaxed">
+              Course ini sudah difinalisasi sehingga materi tidak dapat ditambah, diubah, dihapus, atau diurutkan ulang. Sertifikat digital otomatis terbit bagi siswa yang menyelesaikan 100% materi.
+            </p>
+          </div>
+        ) : (
         <form
           onSubmit={handleSubmitMaterial}
           className="lg:col-span-5 rounded-3xl bg-white border border-line p-6 space-y-4"
@@ -229,6 +297,22 @@ export function MaterialManagerClient({ initialCourse, initialMaterials = [] }) 
             error={fieldErrors.title}
             placeholder="Contoh: Struktur Dokumen HTML Semantik"
           />
+
+          {editingId && materials.length > 0 && (
+            <SelectField
+              id="material-position"
+              label="Urutan Materi"
+              value={position}
+              onChange={(e) => setPosition(e.target.value)}
+              error={fieldErrors.position}
+            >
+              {materials.map((mat, idx) => (
+                <option key={mat.id} value={String(idx + 1)}>
+                  Urutan #{idx + 1}
+                </option>
+              ))}
+            </SelectField>
+          )}
 
           <div className="grid sm:grid-cols-2 gap-3">
             <InputField
@@ -280,6 +364,7 @@ export function MaterialManagerClient({ initialCourse, initialMaterials = [] }) 
             </Button>
           </div>
         </form>
+        )}
 
         {/* Ordered Material List */}
         <div className="lg:col-span-7 space-y-3">
@@ -318,38 +403,40 @@ export function MaterialManagerClient({ initialCourse, initialMaterials = [] }) 
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => handleMove(index, -1)}
-                    disabled={index === 0 || reordering}
-                    aria-label={`Naikkan urutan ${mat.title}`}
-                    className="min-h-11 min-w-11 rounded-full border border-line bg-white hover:bg-page disabled:opacity-40 flex items-center justify-center"
-                  >
-                    <ArrowUp className="w-4 h-4" aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMove(index, 1)}
-                    disabled={index === materials.length - 1 || reordering}
-                    aria-label={`Turunkan urutan ${mat.title}`}
-                    className="min-h-11 min-w-11 rounded-full border border-line bg-white hover:bg-page disabled:opacity-40 flex items-center justify-center"
-                  >
-                    <ArrowDown className="w-4 h-4" aria-hidden="true" />
-                  </button>
-                  <Button variant="outline" size="sm" onClick={() => startEdit(mat)}>
-                    <Pencil className="w-4 h-4" aria-hidden="true" />
-                    <span>Edit</span>
-                  </Button>
-                  <Button
-                    variant="dangerOutline"
-                    size="sm"
-                    onClick={() => setDeleteTarget(mat)}
-                  >
-                    <Trash2 className="w-4 h-4" aria-hidden="true" />
-                    <span>Hapus</span>
-                  </Button>
-                </div>
+                {!isFinalized && (
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleMove(index, -1)}
+                      disabled={index === 0 || reordering}
+                      aria-label={`Naikkan urutan ${mat.title}`}
+                      className="min-h-11 min-w-11 rounded-full border border-line bg-white hover:bg-page disabled:opacity-40 flex items-center justify-center"
+                    >
+                      <ArrowUp className="w-4 h-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMove(index, 1)}
+                      disabled={index === materials.length - 1 || reordering}
+                      aria-label={`Turunkan urutan ${mat.title}`}
+                      className="min-h-11 min-w-11 rounded-full border border-line bg-white hover:bg-page disabled:opacity-40 flex items-center justify-center"
+                    >
+                      <ArrowDown className="w-4 h-4" aria-hidden="true" />
+                    </button>
+                    <Button variant="outline" size="sm" onClick={() => startEdit(mat)}>
+                      <Pencil className="w-4 h-4" aria-hidden="true" />
+                      <span>Edit</span>
+                    </Button>
+                    <Button
+                      variant="dangerOutline"
+                      size="sm"
+                      onClick={() => setDeleteTarget(mat)}
+                    >
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
+                      <span>Hapus</span>
+                    </Button>
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -368,6 +455,17 @@ export function MaterialManagerClient({ initialCourse, initialMaterials = [] }) 
         }
         confirmLabel="Ya, Hapus Materi"
         loading={deleting}
+      />
+
+      <ConfirmModal
+        open={finalizeOpen}
+        onClose={() => setFinalizeOpen(false)}
+        onConfirm={handleFinalizeCourse}
+        title="Finalisasi Course Ini?"
+        message={`Setelah difinalisasi, seluruh materi pada "${course.title}" akan dikunci permanen (tidak bisa ditambah, diubah, atau dihapus), dan sertifikat akan langsung terbit bagi semua siswa yang sudah selesai 100%.`}
+        confirmLabel="Ya, Finalisasi Course"
+        confirmVariant="primary"
+        loading={finalizing}
       />
     </div>
   );

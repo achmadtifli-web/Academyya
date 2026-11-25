@@ -8,7 +8,7 @@ import {
 import { parsePositiveInt, validateMaterialPayload } from '@/lib/validators';
 
 export async function PUT(request, context) {
-  const { user, errorResponse } = await requireApiRole(['teacher', 'admin']);
+  const { user, errorResponse } = await requireApiRole(['teacher']);
   if (errorResponse) return errorResponse;
 
   try {
@@ -22,15 +22,24 @@ export async function PUT(request, context) {
     if (!existing) {
       return NextResponse.json({ success: false, error: 'Materi tidak ditemukan.' }, { status: 404 });
     }
-    if (user.role !== 'admin' && Number(existing.teacher_id) !== Number(user.id)) {
+    if (Number(existing.teacher_id) !== Number(user.id)) {
       return NextResponse.json(
         { success: false, error: 'Anda tidak berhak mengubah materi ini.' },
         { status: 403 }
       );
     }
+    if (existing.course_finalized_at) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Course sudah difinalisasi sehingga materi tidak dapat diubah.',
+        },
+        { status: 400 }
+      );
+    }
 
     const body = await request.json().catch(() => null);
-    const validation = validateMaterialPayload(body);
+    const validation = validateMaterialPayload(body, { allowPosition: true });
     if (!validation.valid) {
       return NextResponse.json(
         {
@@ -44,7 +53,11 @@ export async function PUT(request, context) {
 
     const updated = await updateMaterialById(materialId, validation.data);
     return NextResponse.json(
-      { success: true, data: { material: updated }, message: 'Materi berhasil diperbarui.' },
+      {
+        success: true,
+        data: { material: updated.material, materials: updated.materials },
+        message: 'Materi berhasil diperbarui.',
+      },
       { status: 200 }
     );
   } catch {
@@ -56,7 +69,7 @@ export async function PUT(request, context) {
 }
 
 export async function DELETE(_request, context) {
-  const { user, errorResponse } = await requireApiRole(['teacher', 'admin']);
+  const { user, errorResponse } = await requireApiRole(['teacher']);
   if (errorResponse) return errorResponse;
 
   try {
@@ -70,10 +83,19 @@ export async function DELETE(_request, context) {
     if (!existing) {
       return NextResponse.json({ success: false, error: 'Materi tidak ditemukan.' }, { status: 404 });
     }
-    if (user.role !== 'admin' && Number(existing.teacher_id) !== Number(user.id)) {
+    if (Number(existing.teacher_id) !== Number(user.id)) {
       return NextResponse.json(
         { success: false, error: 'Anda tidak berhak menghapus materi ini.' },
         { status: 403 }
+      );
+    }
+    if (existing.course_finalized_at) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Course sudah difinalisasi sehingga materi tidak dapat dihapus.',
+        },
+        { status: 400 }
       );
     }
 
