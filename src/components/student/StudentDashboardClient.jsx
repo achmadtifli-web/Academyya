@@ -1,13 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { Award, BookOpen, Clock, PlayCircle, XCircle } from 'lucide-react';
+import { Award, BookOpen, Clock, PlayCircle, Sparkles, XCircle } from 'lucide-react';
+import { ContactTeacherButton } from '@/components/course/ContactTeacherButton';
 import { Avatar } from '@/components/ui/Avatar';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { InputField, TextareaField } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
+import { TeacherCvUploadField } from '@/components/teacher/TeacherCvUploadField';
 import { useToast } from '@/components/ui/ToastContext';
 
 const TABS = [
@@ -28,6 +30,7 @@ export function StudentDashboardClient({
   const [expertise, setExpertise] = useState(initialTeacherApplication?.expertise || '');
   const [motivation, setMotivation] = useState('');
   const [portfolioUrl, setPortfolioUrl] = useState('');
+  const [cvFile, setCvFile] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -37,17 +40,25 @@ export function StudentDashboardClient({
 
   const handleReapply = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
     setFieldErrors({});
+
+    if (!cvFile) {
+      setFieldErrors({ cv: 'Unggah file CV dalam format PDF (wajib).' });
+      showToast({ type: 'error', message: 'Unggah file CV dalam format PDF sebelum mengirim pengajuan.' });
+      return;
+    }
+
+    setSubmitting(true);
     try {
+      const formData = new FormData();
+      formData.append('expertise', expertise);
+      formData.append('motivation', motivation);
+      formData.append('portfolio_url', portfolioUrl);
+      formData.append('cv', cvFile);
+
       const res = await fetch('/api/teacher-applications', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          expertise,
-          motivation,
-          portfolio_url: portfolioUrl,
-        }),
+        body: formData,
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -55,6 +66,7 @@ export function StudentDashboardClient({
         throw new Error(json.error || 'Gagal mengirim pengajuan ulang.');
       }
       setTeacherApp(json.data.application);
+      setCvFile(null);
       setReapplyOpen(false);
       showToast({ type: 'success', message: json.message });
     } catch (err) {
@@ -104,36 +116,30 @@ export function StudentDashboardClient({
       )}
 
       {/* Filter Tabs */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter daftar belajar">
-          {TABS.map((tab) => {
-            const count =
-              tab.key === 'all'
-                ? enrollments.length
-                : enrollments.filter((e) => e.enrollment_status === tab.key).length;
-            const active = filter === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setFilter(tab.key)}
-                className={`min-h-11 px-5 rounded-full text-sm font-semibold border transition ${
-                  active
-                    ? 'bg-primary-hover text-white border-primary-hover'
-                    : 'bg-white text-ink border-line hover:border-primary'
-                }`}
-              >
-                {tab.label} ({count})
-              </button>
-            );
-          })}
-        </div>
-
-        <Button href="/courses" variant="outline" size="sm">
-          Jelajahi Katalog
-        </Button>
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter daftar belajar">
+        {TABS.map((tab) => {
+          const count =
+            tab.key === 'all'
+              ? enrollments.length
+              : enrollments.filter((e) => e.enrollment_status === tab.key).length;
+          const active = filter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setFilter(tab.key)}
+              className={`min-h-11 px-5 rounded-full text-sm font-semibold border transition ${
+                active
+                  ? 'bg-primary-hover text-white border-primary-hover'
+                  : 'bg-white text-ink border-line hover:border-primary'
+              }`}
+            >
+              {tab.label} ({count})
+            </button>
+          );
+        })}
       </div>
 
       {/* Enrolled Courses Grid */}
@@ -160,6 +166,12 @@ export function StudentDashboardClient({
             const learnHref = targetMaterialId
               ? `/learn/${item.slug}/${targetMaterialId}`
               : `/learn/${item.slug}`;
+            const hasNewMaterialsAfterCertificate =
+              Boolean(item.certificate_code) && item.progress_percent < 100;
+            const remainingMaterials = Math.max(
+              0,
+              (item.total_materials || 0) - (item.completed_materials || 0)
+            );
 
             return (
               <article
@@ -184,6 +196,22 @@ export function StudentDashboardClient({
                 </div>
 
                 <div className="mt-auto space-y-2 pt-2">
+                  {hasNewMaterialsAfterCertificate && (
+                    <div className="rounded-2xl border border-primary/25 bg-primary-light/60 px-3.5 py-2 text-xs sm:text-sm font-medium text-primary-dark flex items-start gap-2">
+                      <Sparkles className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                      <span>
+                        Ada {remainingMaterials > 0 ? `${remainingMaterials} materi baru` : 'materi baru'} tersedia. Sertifikat Anda tetap aktif.
+                      </span>
+                    </div>
+                  )}
+                  {item.progress_percent === 100 && !item.certificate_code && (
+                    <div className="rounded-2xl border border-accent-dark/30 bg-accent-light px-3.5 py-2 text-xs sm:text-sm font-medium text-ink flex items-start gap-2">
+                      <Clock className="w-4 h-4 text-accent-dark shrink-0 mt-0.5" aria-hidden="true" />
+                      <span>
+                        Sertifikat terbit setelah course difinalisasi pengajar.
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-sm font-semibold">
                     <span className="text-muted">
                       {item.completed_materials} dari {item.total_materials} materi
@@ -208,7 +236,11 @@ export function StudentDashboardClient({
                   >
                     <PlayCircle className="w-4 h-4" aria-hidden="true" />
                     <span>
-                      {item.progress_percent === 100 ? 'Ulas Kembali Materi' : 'Lanjutkan Belajar'}
+                      {hasNewMaterialsAfterCertificate
+                        ? 'Pelajari Materi Baru'
+                        : item.progress_percent === 100
+                        ? 'Ulas Kembali Materi'
+                        : 'Lanjutkan Belajar'}
                     </span>
                   </Button>
 
@@ -221,6 +253,16 @@ export function StudentDashboardClient({
                       <Award className="w-4 h-4" aria-hidden="true" />
                       <span>Lihat Sertifikat</span>
                     </Button>
+                  )}
+
+                  {item.teacher_email && (
+                    <ContactTeacherButton
+                      teacherName={item.teacher_name}
+                      teacherEmail={item.teacher_email}
+                      courseTitle={item.title}
+                      variant="subtle"
+                      className="w-full"
+                    />
                   )}
                 </div>
               </article>
@@ -263,6 +305,18 @@ export function StudentDashboardClient({
             onChange={(e) => setPortfolioUrl(e.target.value)}
             error={fieldErrors.portfolio_url}
             placeholder="https://linkedin.com/in/..."
+          />
+          <TeacherCvUploadField
+            id="reapply-cv"
+            file={cvFile}
+            onChange={(nextFile) => {
+              setCvFile(nextFile);
+              setFieldErrors((prev) => ({ ...prev, cv: undefined }));
+            }}
+            error={fieldErrors.cv}
+            onErrorChange={(msg) =>
+              setFieldErrors((prev) => ({ ...prev, cv: msg || undefined }))
+            }
           />
           <div className="pt-2 flex justify-end gap-3">
             <Button variant="outline" onClick={() => setReapplyOpen(false)}>

@@ -29,8 +29,10 @@ export default async function LearnCourseIndexPage({ params }) {
   const canManage = user.role === 'admin' || user.role === 'teacher';
   const manageMaterialsHref =
     user.role === 'admin'
-      ? `/admin/courses/${workspace.course.id}/materials`
+      ? '/admin/courses'
       : `/teacher/courses/${workspace.course.id}/materials`;
+  const manageActionLabel =
+    user.role === 'admin' ? 'Kembali ke Daftar Course' : 'Kelola Materi Course';
 
   return (
     <AppFrame user={user}>
@@ -39,10 +41,12 @@ export default async function LearnCourseIndexPage({ params }) {
           title="Materi Belum Tersedia"
           description={
             canManage
-              ? 'Course ini belum memiliki materi pembelajaran. Tambahkan materi terlebih dahulu sebelum dipublikasikan.'
+              ? user.role === 'admin'
+                ? 'Course ini belum memiliki materi pembelajaran dari pengajarnya.'
+                : 'Course ini belum memiliki materi pembelajaran. Tambahkan materi terlebih dahulu sebelum dipublikasikan.'
               : 'Pengajar belum menambahkan materi pada course ini.'
           }
-          actionLabel={canManage ? 'Kelola Materi Course' : 'Kembali ke Detail Course'}
+          actionLabel={canManage ? manageActionLabel : 'Kembali ke Detail Course'}
           actionHref={canManage ? manageMaterialsHref : `/courses/${courseSlug}`}
         />
       </main>

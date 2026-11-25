@@ -48,7 +48,7 @@ export default async function LearnMaterialPage({ params }) {
 
   const manageBackHref =
     user.role === 'admin'
-      ? `/admin/courses/${workspace.course.id}/materials`
+      ? '/admin/courses'
       : `/teacher/courses/${workspace.course.id}/materials`;
 
   return (

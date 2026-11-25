@@ -24,6 +24,7 @@ const GUEST_NAV_LINKS = [
 
 const STUDENT_NAV_LINKS = [
   { href: '/dashboard', label: 'My Learning' },
+  { href: '/courses', label: 'Jelajahi Katalog' },
   { href: '/certificates', label: 'Sertifikat Saya' },
 ];
 
