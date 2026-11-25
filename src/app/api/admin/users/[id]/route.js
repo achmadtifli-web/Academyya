@@ -86,19 +86,16 @@ export async function PUT(request, context) {
       { status: 200 }
     );
   } catch (err) {
-    if (err?.code === '23505' && err?.constraint?.includes('email')) {
+    const mapped = mapPgError(err);
+    if (mapped) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Email sudah digunakan oleh pengguna lain.',
-          fieldErrors: { email: 'Email sudah terdaftar di sistem.' },
+          error: mapped.error,
+          ...(mapped.fieldErrors ? { fieldErrors: mapped.fieldErrors } : {}),
         },
-        { status: 409 }
+        { status: mapped.status }
       );
-    }
-    const mapped = mapPgError(err);
-    if (mapped) {
-      return NextResponse.json({ success: false, error: mapped.error }, { status: mapped.status });
     }
     return NextResponse.json(
       { success: false, error: 'Gagal memperbarui data pengguna.' },

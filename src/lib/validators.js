@@ -227,18 +227,23 @@ export function formatCourseDateRange(startDate, endDate) {
   return `Hingga ${formatPlainDateId(endDate)}`;
 }
 
-export function getTeacherMailtoHref(email, courseTitle = '') {
+function buildTeacherContactParams(email, courseTitle = '') {
   const cleanEmail = String(email || '').trim();
   if (!cleanEmail) return null;
   const subject = courseTitle ? `Pertanyaan Course: ${courseTitle}` : 'Pertanyaan Course';
-  return `mailto:${cleanEmail}?subject=${encodeURIComponent(subject)}`;
+  return { cleanEmail, subject };
+}
+
+export function getTeacherMailtoHref(email, courseTitle = '') {
+  const params = buildTeacherContactParams(email, courseTitle);
+  if (!params) return null;
+  return `mailto:${params.cleanEmail}?subject=${encodeURIComponent(params.subject)}`;
 }
 
 export function getTeacherGmailHref(email, courseTitle = '') {
-  const cleanEmail = String(email || '').trim();
-  if (!cleanEmail) return null;
-  const subject = courseTitle ? `Pertanyaan Course: ${courseTitle}` : 'Pertanyaan Course';
-  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(cleanEmail)}&su=${encodeURIComponent(subject)}`;
+  const params = buildTeacherContactParams(email, courseTitle);
+  if (!params) return null;
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(params.cleanEmail)}&su=${encodeURIComponent(params.subject)}`;
 }
 
 export function validateTeacherApplicationPayload(body) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, Save, Trash2, Undo2, Upload, X } from 'lucide-react';
@@ -8,9 +8,8 @@ import { Button } from '@/components/ui/Button';
 import { InputField, SelectField, TextareaField } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/ToastContext';
 import { getCourseThumbnail } from '@/lib/courseThumbnails';
+import { useImageUploadField } from '@/lib/useImageUploadField';
 
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const ALLOWED_IMAGE_EXT_REGEX = /\.(jpe?g|png|webp)$/i;
 const MAX_COURSE_THUMBNAIL_BYTES = 5 * 1024 * 1024;
 
 const FIELD_INPUT_IDS = {
@@ -35,7 +34,6 @@ export function CourseFormClient({
 }) {
   const router = useRouter();
   const { showToast } = useToast();
-  const fileInputRef = useRef(null);
   const isEditing = Boolean(initialCourse);
 
   const [title, setTitle] = useState(initialCourse?.title || '');
@@ -51,20 +49,9 @@ export function CourseFormClient({
   const [startDate, setStartDate] = useState(initialCourse?.start_date || '');
   const [endDate, setEndDate] = useState(initialCourse?.end_date || '');
   const [savedThumbnailUrl] = useState(initialCourse?.thumbnail_url || '');
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [localPreviewUrl, setLocalPreviewUrl] = useState('');
-  const [removeThumbnail, setRemoveThumbnail] = useState(false);
   const [description, setDescription] = useState(initialCourse?.description || '');
   const [fieldErrors, setFieldErrors] = useState({});
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    return () => {
-      if (localPreviewUrl) {
-        URL.revokeObjectURL(localPreviewUrl);
-      }
-    };
-  }, [localPreviewUrl]);
 
   const clearFieldError = (field) => {
     setFieldErrors((prev) => {
@@ -74,6 +61,29 @@ export function CourseFormClient({
       return next;
     });
   };
+
+  const {
+    fileInputRef,
+    selectedFile,
+    localPreviewUrl,
+    removeImage: removeThumbnail,
+    setRemoveImage: setRemoveThumbnail,
+    handleFileChange,
+    handleCancelSelectedFile,
+    handleRemoveImage: handleRemoveThumbnail,
+  } = useImageUploadField({
+    maxBytes: MAX_COURSE_THUMBNAIL_BYTES,
+    sizeErrorMessage: 'Ukuran foto sampul course maksimal 5 MB.',
+    onError: (msg) => setFieldErrors((prev) => ({ ...prev, thumbnail: msg })),
+    onClearError: () => {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.thumbnail;
+        delete next.thumbnail_url;
+        return next;
+      });
+    },
+  });
 
   const selectedCategory = categories.find((cat) => String(cat.id) === String(categoryId));
   const customThumbnailSrc = localPreviewUrl
@@ -88,64 +98,6 @@ export function CourseFormClient({
       slug: initialCourse?.slug,
       category_slug: selectedCategory?.slug,
     });
-
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const validType =
-      ALLOWED_IMAGE_TYPES.includes(file.type) ||
-      (!file.type && ALLOWED_IMAGE_EXT_REGEX.test(file.name));
-
-    if (!validType) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        thumbnail: 'Format foto harus JPG, PNG, atau WebP.',
-      }));
-      e.target.value = '';
-      return;
-    }
-
-    if (file.size > MAX_COURSE_THUMBNAIL_BYTES) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        thumbnail: 'Ukuran foto sampul course maksimal 5 MB.',
-      }));
-      e.target.value = '';
-      return;
-    }
-
-    if (localPreviewUrl) {
-      URL.revokeObjectURL(localPreviewUrl);
-    }
-
-    setFieldErrors((prev) => {
-      const next = { ...prev };
-      delete next.thumbnail;
-      delete next.thumbnail_url;
-      return next;
-    });
-    setSelectedFile(file);
-    setLocalPreviewUrl(URL.createObjectURL(file));
-    setRemoveThumbnail(false);
-  };
-
-  const handleCancelSelectedFile = () => {
-    if (localPreviewUrl) {
-      URL.revokeObjectURL(localPreviewUrl);
-    }
-    setSelectedFile(null);
-    setLocalPreviewUrl('');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleRemoveThumbnail = () => {
-    handleCancelSelectedFile();
-    setRemoveThumbnail(true);
-    clearFieldError('thumbnail');
-  };
 
   const focusFirstError = (errors) => {
     for (const key of Object.keys(FIELD_INPUT_IDS)) {

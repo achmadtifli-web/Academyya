@@ -90,9 +90,9 @@ export async function saveUploadedImageFile({
 }
 
 /**
- * Remove a stored uploaded image matching the expected URL prefix and filename pattern.
+ * Remove a stored uploaded file matching the expected URL prefix and filename pattern.
  */
-export async function deleteStoredImageByUrl({ fileUrl, urlPrefix, uploadDir, filenameRegex }) {
+export async function deleteStoredFileByUrl({ fileUrl, urlPrefix, uploadDir, filenameRegex }) {
   if (!fileUrl || typeof fileUrl !== 'string') return;
   if (!fileUrl.startsWith(urlPrefix)) return;
 

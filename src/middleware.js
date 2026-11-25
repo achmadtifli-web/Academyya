@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import { SESSION_COOKIE_NAME, verifySessionToken } from '@/lib/session';
+import {
+  getDefaultHomeForRole,
+  SESSION_COOKIE_NAME,
+  verifySessionToken,
+} from '@/lib/session';
 
 const PROTECTED_PREFIXES = ['/dashboard', '/learn', '/profile', '/teacher', '/admin'];
 
@@ -8,12 +12,6 @@ function isProtectedPath(pathname) {
   return PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
-}
-
-function getDefaultHomeForRole(role) {
-  if (role === 'admin') return '/admin';
-  if (role === 'teacher') return '/teacher';
-  return '/dashboard';
 }
 
 export async function middleware(request) {

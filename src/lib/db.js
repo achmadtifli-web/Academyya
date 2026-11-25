@@ -41,6 +41,7 @@ export function mapPgError(err) {
         return {
           status: 409,
           error: 'Email sudah terdaftar. Gunakan email lain atau silakan masuk.',
+          fieldErrors: { email: 'Email sudah terdaftar di sistem.' },
         };
       }
       if (err.constraint?.includes('enrollments')) {

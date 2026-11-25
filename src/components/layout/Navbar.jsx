@@ -16,6 +16,7 @@ import {
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/ToastContext';
+import { getDefaultHomeForRole } from '@/lib/session';
 
 const GUEST_NAV_LINKS = [
   { href: '/', label: 'Beranda' },
@@ -65,9 +66,7 @@ function getNavLinksForUser(user) {
 
 function getBrandHref(user) {
   if (!user) return '/';
-  if (user.role === 'admin') return '/admin';
-  if (user.role === 'teacher') return '/teacher';
-  return '/dashboard';
+  return getDefaultHomeForRole(user.role);
 }
 
 function isNavLinkActive(pathname, href) {

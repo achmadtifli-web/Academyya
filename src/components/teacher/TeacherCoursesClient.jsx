@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BookOpen, Eye, Layers, Lock, Pencil, Plus, Trash2 } from 'lucide-react';
+import { FinalizeCourseModal } from '@/components/course/FinalizeCourseModal';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -268,18 +269,11 @@ export function TeacherCoursesClient({ initialCourses = [] }) {
         loading={busyId === deleteTarget?.id}
       />
 
-      <ConfirmModal
+      <FinalizeCourseModal
         open={Boolean(finalizeTarget)}
+        courseTitle={finalizeTarget?.title || ''}
         onClose={() => setFinalizeTarget(null)}
         onConfirm={handleFinalize}
-        title="Finalisasi Course Ini?"
-        message={
-          finalizeTarget
-            ? `Setelah difinalisasi, seluruh materi pada "${finalizeTarget.title}" akan dikunci permanen dan sertifikat langsung diterbitkan bagi siswa yang telah selesai 100%.`
-            : ''
-        }
-        confirmLabel="Ya, Finalisasi Course"
-        confirmVariant="primary"
         loading={busyId === finalizeTarget?.id}
       />
     </div>

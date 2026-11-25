@@ -1,8 +1,6 @@
 import path from 'node:path';
 import {
-  deleteStoredImageByUrl,
-  detectImageFormat,
-  getMimeByFilename,
+  deleteStoredFileByUrl,
   saveUploadedImageFile,
 } from '@/lib/uploadStorage';
 
@@ -10,8 +8,6 @@ export const AVATAR_UPLOAD_DIR = path.join(process.cwd(), 'storage', 'uploads', 
 export const AVATAR_URL_PREFIX = '/api/uploads/avatars/';
 export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 export const AVATAR_FILENAME_REGEX = /^avatar-\d+-[a-f0-9]+\.(jpg|png|webp)$/;
-
-export { detectImageFormat, getMimeByFilename };
 
 /**
  * Validate and persist a user profile avatar image.
@@ -35,7 +31,7 @@ export async function saveUserAvatarFile(userId, file) {
  * Delete a previously stored local user avatar file if its URL matches local storage.
  */
 export async function deleteStoredAvatarByUrl(avatarUrl) {
-  return deleteStoredImageByUrl({
+  return deleteStoredFileByUrl({
     fileUrl: avatarUrl,
     urlPrefix: AVATAR_URL_PREFIX,
     uploadDir: AVATAR_UPLOAD_DIR,

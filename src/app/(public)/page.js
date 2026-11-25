@@ -4,7 +4,6 @@ import {
   BookOpen,
   CheckCircle2,
   MessageSquare,
-  PlayCircle,
 } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
 import { getPlatformStats, listPopularCourses } from '@/lib/queries/courses';
@@ -64,8 +63,6 @@ export default async function HomePage() {
     getPlatformStats(),
     listPopularCourses(4),
   ]);
-
-  const activeEnrollment = null;
 
   return (
     <main className="flex-1 min-w-0 w-full">
@@ -186,73 +183,32 @@ export default async function HomePage() {
       {/* Frequently Asked Questions */}
       <FaqSection />
 
-      {/* Contextual Recommendation / Teacher CTA Banner */}
+      {/* Teacher CTA Banner */}
       <section className="bg-page border-t border-line py-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {activeEnrollment ? (
-            <div className="rounded-3xl bg-primary-light/80 border border-primary/25 p-8 sm:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-              <div className="space-y-3 max-w-2xl">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1 text-sm font-semibold text-primary-dark">
-                  <PlayCircle className="w-4 h-4" aria-hidden="true" />
-                  <span>Lanjutkan Belajarmu</span>
-                </span>
-                <h2 className="font-heading text-2xl sm:text-3xl font-bold text-ink">
-                  {activeEnrollment.title}
-                </h2>
-                <div className="space-y-1.5 max-w-md">
-                  <div className="flex justify-between text-sm font-semibold text-ink">
-                    <span>Progres saat ini</span>
-                    <span>{activeEnrollment.progress_percent}% Selesai</span>
-                  </div>
-                  <div className="h-3 w-full rounded-full bg-white overflow-hidden border border-primary/20">
-                    <div
-                      className="h-full rounded-full bg-primary-hover"
-                      style={{ width: `${activeEnrollment.progress_percent}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="shrink-0">
-                <Button
-                  href={
-                    activeEnrollment.next_material_id || activeEnrollment.first_material_id
-                      ? `/learn/${activeEnrollment.slug}/${
-                          activeEnrollment.next_material_id || activeEnrollment.first_material_id
-                        }`
-                      : `/learn/${activeEnrollment.slug}`
-                  }
-                  variant="primary"
-                  size="lg"
-                >
-                  <span>Lanjutkan Belajar</span>
-                </Button>
-              </div>
+          <div className="rounded-3xl bg-primary-light/80 border border-primary/25 p-8 sm:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden">
+            <div
+              aria-hidden="true"
+              className="hidden sm:block absolute -right-10 -bottom-10 w-44 h-44 rounded-full bg-coral/20"
+            />
+            <div
+              aria-hidden="true"
+              className="hidden sm:block absolute right-24 -top-10 w-24 h-24 rounded-full bg-accent/35"
+            />
+            <div className="space-y-3 max-w-2xl relative z-10">
+              <h2 className="font-heading text-2xl sm:text-3xl font-bold text-ink">
+                Siap Berbagi Ilmu sebagai Pengajar?
+              </h2>
+              <p className="text-base text-ink/85 leading-relaxed">
+                Daftarkan diri Anda menjadi Teacher terverifikasi, susun materi pembelajaran langkah demi langkah, dan bantu lebih banyak pelajar menguasai keahlian baru.
+              </p>
             </div>
-          ) : (
-            <div className="rounded-3xl bg-primary-light/80 border border-primary/25 p-8 sm:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden">
-              <div
-                aria-hidden="true"
-                className="hidden sm:block absolute -right-10 -bottom-10 w-44 h-44 rounded-full bg-coral/20"
-              />
-              <div
-                aria-hidden="true"
-                className="hidden sm:block absolute right-24 -top-10 w-24 h-24 rounded-full bg-accent/35"
-              />
-              <div className="space-y-3 max-w-2xl relative z-10">
-                <h2 className="font-heading text-2xl sm:text-3xl font-bold text-ink">
-                  Siap Berbagi Ilmu sebagai Pengajar?
-                </h2>
-                <p className="text-base text-ink/85 leading-relaxed">
-                  Daftarkan diri Anda menjadi Teacher terverifikasi, susun materi pembelajaran langkah demi langkah, dan bantu lebih banyak pelajar menguasai keahlian baru.
-                </p>
-              </div>
-              <div className="shrink-0 relative z-10">
-                <Button href="/register?type=teacher" variant="primary" size="lg">
-                  <span>Daftar Jadi Teacher</span>
-                </Button>
-              </div>
+            <div className="shrink-0 relative z-10">
+              <Button href="/register?type=teacher" variant="primary" size="lg">
+                <span>Daftar Jadi Teacher</span>
+              </Button>
             </div>
-          )}
+          </div>
         </div>
       </section>
     </main>

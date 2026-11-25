@@ -8,15 +8,8 @@ import { Button } from '@/components/ui/Button';
 import { InputField } from '@/components/ui/Input';
 import { PasswordField } from '@/components/ui/PasswordField';
 import { useToast } from '@/components/ui/ToastContext';
-
-function getSafeRedirect(callbackUrl, role) {
-  if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')) {
-    return callbackUrl;
-  }
-  if (role === 'admin') return '/admin';
-  if (role === 'teacher') return '/teacher';
-  return '/dashboard';
-}
+import { getDefaultHomeForRole } from '@/lib/session';
+import { sanitizeCallbackUrl } from '@/lib/validators';
 
 export function LoginFormClient({ callbackUrl = '' }) {
   const router = useRouter();
@@ -46,7 +39,7 @@ export function LoginFormClient({ callbackUrl = '' }) {
         return;
       }
 
-      const target = getSafeRedirect(callbackUrl, json.data.user.role);
+      const target = sanitizeCallbackUrl(callbackUrl, getDefaultHomeForRole(json.data.user.role));
       showToast({ type: 'success', message: 'Berhasil masuk. Selamat datang kembali!' });
       router.push(target);
       router.refresh();

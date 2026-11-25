@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import {
+  getDefaultHomeForRole,
   SESSION_COOKIE_NAME,
   SESSION_MAX_AGE_SECONDS,
   signSessionToken,
@@ -10,13 +11,7 @@ import {
 } from '@/lib/session';
 import { fetchFreshUserSessionProfile } from '@/lib/queries/users';
 
-export { SESSION_COOKIE_NAME, signSessionToken, verifySessionToken };
-
-export function getDefaultHomeForRole(role) {
-  if (role === 'admin') return '/admin';
-  if (role === 'teacher') return '/teacher';
-  return '/dashboard';
-}
+export { getDefaultHomeForRole, SESSION_COOKIE_NAME, signSessionToken, verifySessionToken };
 
 export async function hashPassword(plainPassword) {
   return bcrypt.hash(plainPassword, 10);

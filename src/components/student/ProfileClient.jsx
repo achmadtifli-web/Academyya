@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, FileText, Save, Trash2, Upload, X } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
@@ -9,22 +9,17 @@ import { Button } from '@/components/ui/Button';
 import { InputField, TextareaField } from '@/components/ui/Input';
 import { PasswordField } from '@/components/ui/PasswordField';
 import { useToast } from '@/components/ui/ToastContext';
+import { useImageUploadField } from '@/lib/useImageUploadField';
 
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
 export function ProfileClient({ initialUser, initialApplications = [] }) {
   const router = useRouter();
   const { showToast } = useToast();
-  const fileInputRef = useRef(null);
 
   const [user, setUser] = useState(initialUser);
   const [name, setName] = useState(initialUser.name || '');
   const [bio, setBio] = useState(initialUser.bio || '');
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [localPreviewUrl, setLocalPreviewUrl] = useState('');
-  const [removeAvatar, setRemoveAvatar] = useState(false);
-
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -32,76 +27,33 @@ export function ProfileClient({ initialUser, initialApplications = [] }) {
 
   const applications = initialApplications;
 
-  useEffect(() => {
-    return () => {
-      if (localPreviewUrl) {
-        URL.revokeObjectURL(localPreviewUrl);
-      }
-    };
-  }, [localPreviewUrl]);
+  const {
+    fileInputRef,
+    selectedFile,
+    localPreviewUrl,
+    removeImage: removeAvatar,
+    setRemoveImage: setRemoveAvatar,
+    handleFileChange,
+    handleCancelSelectedFile,
+    handleRemoveImage: handleRemoveAvatar,
+  } = useImageUploadField({
+    maxBytes: MAX_AVATAR_BYTES,
+    sizeErrorMessage: 'Ukuran foto profil maksimal 2 MB.',
+    onError: (msg) => setFieldErrors((prev) => ({ ...prev, avatar: msg })),
+    onClearError: () => {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.avatar;
+        return next;
+      });
+    },
+  });
 
   const activeAvatarSrc = localPreviewUrl
     ? localPreviewUrl
     : removeAvatar
     ? null
     : user.avatar_url;
-
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        avatar: 'Format foto harus JPG, PNG, atau WebP.',
-      }));
-      e.target.value = '';
-      return;
-    }
-
-    if (file.size > MAX_AVATAR_BYTES) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        avatar: 'Ukuran foto profil maksimal 2 MB.',
-      }));
-      e.target.value = '';
-      return;
-    }
-
-    if (localPreviewUrl) {
-      URL.revokeObjectURL(localPreviewUrl);
-    }
-
-    setFieldErrors((prev) => {
-      const next = { ...prev };
-      delete next.avatar;
-      return next;
-    });
-    setSelectedFile(file);
-    setLocalPreviewUrl(URL.createObjectURL(file));
-    setRemoveAvatar(false);
-  };
-
-  const handleCancelSelectedFile = () => {
-    if (localPreviewUrl) {
-      URL.revokeObjectURL(localPreviewUrl);
-    }
-    setSelectedFile(null);
-    setLocalPreviewUrl('');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleRemoveAvatar = () => {
-    handleCancelSelectedFile();
-    setRemoveAvatar(true);
-    setFieldErrors((prev) => {
-      const next = { ...prev };
-      delete next.avatar;
-      return next;
-    });
-  };
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();

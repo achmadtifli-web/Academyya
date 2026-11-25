@@ -9,6 +9,7 @@ import { InputField, TextareaField } from '@/components/ui/Input';
 import { PasswordField } from '@/components/ui/PasswordField';
 import { TeacherCvUploadField } from '@/components/teacher/TeacherCvUploadField';
 import { useToast } from '@/components/ui/ToastContext';
+import { sanitizeCallbackUrl } from '@/lib/validators';
 
 export function RegisterFormClient({ initialType = 'student', callbackUrl = '' }) {
   const router = useRouter();
@@ -104,10 +105,7 @@ export function RegisterFormClient({ initialType = 'student', callbackUrl = '' }
       }
 
       showToast({ type: 'success', message: json.message });
-      const safeTarget =
-        callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')
-          ? callbackUrl
-          : '/dashboard';
+      const safeTarget = sanitizeCallbackUrl(callbackUrl, '/dashboard');
       router.push(safeTarget);
       router.refresh();
     } catch {

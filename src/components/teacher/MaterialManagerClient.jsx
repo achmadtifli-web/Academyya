@@ -14,6 +14,7 @@ import {
   Trash2,
   Video,
 } from 'lucide-react';
+import { FinalizeCourseModal } from '@/components/course/FinalizeCourseModal';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -455,14 +456,11 @@ export function MaterialManagerClient({ initialCourse, initialMaterials = [] }) 
         loading={deleting}
       />
 
-      <ConfirmModal
+      <FinalizeCourseModal
         open={finalizeOpen}
+        courseTitle={course.title}
         onClose={() => setFinalizeOpen(false)}
         onConfirm={handleFinalizeCourse}
-        title="Finalisasi Course Ini?"
-        message={`Setelah difinalisasi, seluruh materi pada "${course.title}" akan dikunci permanen (tidak bisa ditambah, diubah, atau dihapus), dan sertifikat akan langsung terbit bagi semua siswa yang sudah selesai 100%.`}
-        confirmLabel="Ya, Finalisasi Course"
-        confirmVariant="primary"
         loading={finalizing}
       />
     </div>

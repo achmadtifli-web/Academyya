@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { deleteStoredFileByUrl } from '@/lib/uploadStorage';
 
 export const TEACHER_CV_UPLOAD_DIR = path.join(
   process.cwd(),
@@ -55,18 +56,10 @@ export async function saveTeacherCvFile(file, ownerTag = 'applicant') {
  * Remove a stored CV PDF matching the expected prefix and filename pattern.
  */
 export async function deleteStoredTeacherCvByUrl(cvUrl) {
-  if (!cvUrl || typeof cvUrl !== 'string') return;
-  if (!cvUrl.startsWith(TEACHER_CV_URL_PREFIX)) return;
-
-  const filename = cvUrl.slice(TEACHER_CV_URL_PREFIX.length);
-  if (!TEACHER_CV_FILENAME_REGEX.test(filename)) return;
-
-  const fullPath = path.join(TEACHER_CV_UPLOAD_DIR, filename);
-  try {
-    await fs.unlink(fullPath);
-  } catch (err) {
-    if (err?.code !== 'ENOENT') {
-      // Ignore cleanup errors after failed DB transaction.
-    }
-  }
+  return deleteStoredFileByUrl({
+    fileUrl: cvUrl,
+    urlPrefix: TEACHER_CV_URL_PREFIX,
+    uploadDir: TEACHER_CV_UPLOAD_DIR,
+    filenameRegex: TEACHER_CV_FILENAME_REGEX,
+  });
 }
