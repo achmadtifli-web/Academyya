@@ -184,18 +184,11 @@ export function TeacherCoursesClient({ initialCourses = [] }) {
                     role="switch"
                     aria-checked={isPublished}
                     aria-label={
-                      isFinalized
-                        ? `${course.title} sudah final`
-                        : isPublished
+                      isPublished
                         ? `Ubah status ${course.title} ke Draft`
                         : `Publikasikan ${course.title}`
                     }
-                    title={
-                      isFinalized
-                        ? 'Course sudah final dan tidak dapat dikembalikan ke draft'
-                        : undefined
-                    }
-                    disabled={isBusy || isFinalized}
+                    disabled={isBusy}
                     onClick={() => handleTogglePublish(course)}
                     className="min-h-11 px-3 py-1.5 rounded-full border border-line bg-page inline-flex items-center gap-2.5 text-sm font-semibold text-ink hover:border-primary/50 disabled:opacity-50 transition"
                   >
@@ -266,7 +259,9 @@ export function TeacherCoursesClient({ initialCourses = [] }) {
         title="Hapus Course?"
         message={
           deleteTarget
-            ? `Course "${deleteTarget.title}" beserta seluruh materinya akan dihapus permanen.`
+            ? deleteTarget.finalized_at
+              ? `Course "${deleteTarget.title}" sudah difinalisasi. Menghapus course ini akan menghapus permanen seluruh materi, riwayat kelulusan, serta sertifikat yang pernah diterbitkan dari course ini.`
+              : `Course "${deleteTarget.title}" beserta seluruh materinya akan dihapus permanen.`
             : ''
         }
         confirmLabel="Ya, Hapus Course"

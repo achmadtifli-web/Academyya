@@ -100,15 +100,6 @@ export async function handleUpdateCourseMutation(
     if (parsed.rawStatus === 'published' || parsed.rawStatus === 'draft') {
       nextStatus = parsed.rawStatus;
     }
-    if (nextStatus === 'draft' && existingCourse.finalized_at) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Course yang sudah difinalisasi tidak dapat dikembalikan ke status draft.',
-        },
-        { status: 400 }
-      );
-    }
     if (nextStatus === 'published' && existingCourse.total_materials < 1) {
       return NextResponse.json(
         {
@@ -246,16 +237,6 @@ export async function handleCoursePatchAction(courseId, existingCourse, body) {
   if (!['draft', 'published'].includes(nextStatus)) {
     return NextResponse.json(
       { success: false, error: 'Status course harus draft atau published.' },
-      { status: 400 }
-    );
-  }
-
-  if (nextStatus === 'draft' && existingCourse.finalized_at) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Course yang sudah difinalisasi tidak dapat dikembalikan ke status draft.',
-      },
       { status: 400 }
     );
   }

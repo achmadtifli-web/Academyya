@@ -240,22 +240,15 @@ export function AdminCoursesClient({ initialCourses = [] }) {
                               type="button"
                               aria-label={
                                 course.status === 'published'
-                                  ? course.finalized_at
-                                    ? `${course.title} sudah final`
-                                    : `Turunkan ${course.title} ke draft`
+                                  ? `Turunkan ${course.title} ke draft`
                                   : `Publikasikan ${course.title}`
                               }
                               title={
                                 course.status === 'published'
-                                  ? course.finalized_at
-                                    ? 'Course sudah final dan tidak bisa diturunkan ke draft'
-                                    : 'Turunkan ke Draft'
+                                  ? 'Turunkan ke Draft'
                                   : 'Publikasikan Course'
                               }
-                              disabled={
-                                busyId === course.id ||
-                                (course.status === 'published' && Boolean(course.finalized_at))
-                              }
+                              disabled={busyId === course.id}
                               onClick={() => handleToggleStatus(course)}
                               className={`w-11 h-11 rounded-2xl border inline-flex items-center justify-center disabled:opacity-50 transition ${
                                 course.status === 'published'
@@ -343,10 +336,7 @@ export function AdminCoursesClient({ initialCourses = [] }) {
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={
-                        busyId === course.id ||
-                        (course.status === 'published' && Boolean(course.finalized_at))
-                      }
+                      disabled={busyId === course.id}
                       onClick={() => handleToggleStatus(course)}
                     >
                       {course.status === 'published' ? 'Turunkan' : 'Publikasikan'}
@@ -380,7 +370,9 @@ export function AdminCoursesClient({ initialCourses = [] }) {
         title="Hapus Course Secara Permanen?"
         message={
           deleteTarget
-            ? `Course "${deleteTarget.title}" beserta seluruh materi, riwayat belajar, dan diskusinya akan dihapus permanen.`
+            ? deleteTarget.finalized_at
+              ? `Course "${deleteTarget.title}" sudah difinalisasi. Menghapus course ini akan menghapus permanen seluruh materi, riwayat belajar, diskusi, serta sertifikat yang pernah diterbitkan dari course ini.`
+              : `Course "${deleteTarget.title}" beserta seluruh materi, riwayat belajar, dan diskusinya akan dihapus permanen.`
             : ''
         }
         confirmLabel="Ya, Hapus Course"

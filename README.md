@@ -67,7 +67,7 @@ Academyya adalah aplikasi **Learning Management System (LMS)** berbasis web yang
 
 ### 6. 🧑‍🏫 Panel Pengajar (`/teacher`) & 🛡️ Panel Admin (`/admin`)
 
-- **Teacher Panel**: Ringkasan metrik mengajar, pembuatan dan penyuntingan course beserta jadwal tanggal (`start_date`–`end_date`) dan upload foto sampul (`FormData`), toggle *published/draft* (syarat minimal 1 materi), manajemen materi CRUD dan pengurutan ulang atomik (memanfaatkan constraint `DEFERRABLE INITIALLY DEFERRED`), **Finalisasi Course** (mengunci permanen materi serta status publikasi), dan pemantauan progres siswa (`/teacher/students`).
+- **Teacher Panel**: Ringkasan metrik mengajar, pembuatan dan penyuntingan course beserta jadwal tanggal (`start_date`–`end_date`) dan upload foto sampul (`FormData`), toggle *published/draft* (syarat minimal 1 materi), manajemen materi CRUD dan pengurutan ulang atomik (memanfaatkan constraint `DEFERRABLE INITIALLY DEFERRED`), **Finalisasi Course** (mengunci permanen materi, namun status tetap dapat dikembalikan ke *draft* jika course perlu diturunkan atau dihapus), dan pemantauan progres siswa (`/teacher/students`).
 - **Admin Panel**: Statistik platform (`GET /api/admin/stats`), peninjauan pengajuan Teacher beserta tautan **Lihat CV Pelamar (PDF)** dan portofolio (approve/reject dengan promosi peran dan notifikasi transaksional), CRUD kategori (dilindungi `ON DELETE RESTRICT`), pembuatan/penyuntingan course (`/admin/courses/new`, `/admin/courses/[id]/edit`), moderasi status *published/draft*, **Finalisasi Course**, penghapusan course berproteksi, serta pengelolaan pengguna (`/admin/users`) dengan pencarian, filter peran/pelamar pending, paginasi, dan modal tambah/edit akun.
 
 ### 7. ♿ Aksesibilitas & UI

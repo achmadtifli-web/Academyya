@@ -239,19 +239,17 @@ export function MaterialManagerClient({ initialCourse, initialMaterials = [] }) 
             <Eye className="w-4 h-4" aria-hidden="true" />
             <span>Pratinjau Kelas</span>
           </Button>
-          {!isFinalized && (
-            <Button
-              variant={course.status === 'published' ? 'outline' : 'success'}
-              size="sm"
-              loading={publishing}
-              onClick={handleTogglePublish}
-            >
-              <Globe className="w-4 h-4" aria-hidden="true" />
-              <span>
-                {course.status === 'published' ? 'Simpan ke Draft' : 'Publikasikan Course'}
-              </span>
-            </Button>
-          )}
+          <Button
+            variant={course.status === 'published' ? 'outline' : 'success'}
+            size="sm"
+            loading={publishing}
+            onClick={handleTogglePublish}
+          >
+            <Globe className="w-4 h-4" aria-hidden="true" />
+            <span>
+              {course.status === 'published' ? 'Simpan ke Draft' : 'Publikasikan Course'}
+            </span>
+          </Button>
           {course.status === 'published' && !isFinalized && materials.length > 0 && (
             <Button
               variant="primary"
