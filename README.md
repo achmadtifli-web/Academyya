@@ -38,42 +38,42 @@ Academyya adalah aplikasi **Learning Management System (LMS)** berbasis web yang
 
 ### 1. 🌐 Halaman Publik & Eksplorasi Katalog
 
-- **Beranda (`/`)**: Ringkasan statistik platform (`total_courses`, `total_students`, `total_teachers`), hingga 4 course terpopuler, panduan 4 langkah cara belajar, FAQ interaktif (`FaqSection`), Hero Section berlapis (`HeroVisual` dengan animasi CSS GPU dan dukungan `prefers-reduced-motion`), serta banner kontekstual (*Lanjutkan Belajarmu* untuk Student atau ajakan menjadi Teacher).
-- **Katalog Course (`/courses`)**: Pencarian berdasarkan judul/deskripsi, filter kategori dan level (pemula, menengah, lanjut), pengurutan (Terbaru / Terpopuler), dan paginasi (12 item per halaman) yang tersinkron ke parameter URL melalui `GET /api/courses`.
-- **Detail Course (`/courses/[slug]`)**: Informasi pengajar, metrik jumlah materi dan total durasi, silabus berurutan, serta status pendaftaran. Course berstatus *draft* hanya dapat diakses oleh pengajar pemiliknya atau Admin.
+- **Beranda (`/`)**: Ringkasan statistik platform (`total_courses`, `total_students`, `total_teachers`), hingga 4 course terpopuler, panduan 4 langkah cara belajar, FAQ interaktif (`FaqSection`), Hero Section berlapis (`HeroVisual` dengan animasi CSS GPU dan dukungan `prefers-reduced-motion`), serta banner ajakan mendaftar sebagai Teacher. Pengguna yang sudah login otomatis diarahkan ke dashboard sesuai perannya (`/dashboard`, `/teacher`, atau `/admin`).
+- **Katalog Course (`/courses`)**: Pencarian berdasarkan judul/deskripsi, filter kategori dan level (pemula, menengah, lanjut), pengurutan (Terbaru / Terpopuler), dan paginasi (12 item per halaman) yang tersinkron ke parameter URL melalui `GET /api/courses`. Setiap kartu course (`CourseCard`) juga menampilkan badge **Bersertifikat** (untuk course final) serta status jadwal (*Mulai ...* / *Berakhir ...*). Bagi Student, akses **Jelajahi Katalog** tersedia langsung di Navbar.
+- **Detail Course (`/courses/[slug]`)**: Informasi pengajar beserta tombol **Hubungi Pengajar** (`ContactTeacherButton`), metrik jumlah materi, total durasi, rentang tanggal kelas (`start_date`–`end_date` atau *Lifetime Access*), badge **Bersertifikat** dan status jadwal, silabus berurutan, serta status pendaftaran. Course berstatus *draft* hanya dapat diakses oleh pengajar pemiliknya atau Admin.
 
 ### 2. 🔐 Autentikasi & Otorisasi Berbasis Peran (RBAC)
 
-- **Registrasi & Login**: Pendaftaran sebagai Student atau calon Teacher (`POST /api/auth/register`), serta login/logout (`POST /api/auth/login`, `POST /api/auth/logout`) dengan hash kata sandi `bcryptjs` (cost factor 10).
+- **Registrasi & Login**: Pendaftaran sebagai Student atau calon Teacher (`POST /api/auth/register`) lengkap dengan fitur **show/hide password** (`PasswordField`) dan **konfirmasi kata sandi**, serta login/logout (`POST /api/auth/login`, `POST /api/auth/logout`) dengan hash kata sandi `bcryptjs` (cost factor 10). Khusus pendaftaran calon Teacher, pelamar wajib mengunggah **CV dalam format PDF**.
 - **Sesi JWT Cookie**: Token JWT HS256 (`jose`) berdurasi 7 hari yang disimpan pada HTTP-only cookie `academyya_session`.
-- **Guard Bertingkat**: `src/middleware.js` memeriksa keabsahan cookie sesi untuk rute terproteksi (`/certificates`, `/dashboard`, `/learn`, `/profile`, `/teacher`, `/admin`). Pengecekan peran database dijalankan oleh Server Component layout/halaman (`getCurrentUser()`) dan API guards (`requireApiAuth`, `requireApiRole`), lalu disinkronkan melalui `GET /api/auth/me`.
+- **Guard Bertingkat**: `src/middleware.js` memeriksa keabsahan cookie sesi untuk rute terproteksi (`/certificates`, `/dashboard`, `/learn`, `/profile`, `/teacher`, `/admin`), mengarahkan pengguna terautentikasi dari `/` ke panel masing-masing, serta mengalihkan Teacher/Admin dari `/courses`. Pengecekan peran database dijalankan oleh Server Component layout/halaman (`getCurrentUser()`) dan API guards (`requireApiAuth`, `requireApiRole`), lalu disinkronkan melalui `GET /api/auth/me`.
 
 ### 3. 📖 Ruang Belajar, Progres & Diskusi Materi
 
-- **Enrollment & Ruang Belajar (`/learn/[course]/[materi]`)**: Student dapat mendaftar ke course *published* (`POST /api/enrollments`). Ruang belajar menyediakan navigasi materi sebelumnya/berikutnya, pemutar video embed YouTube/Vimeo (`toEmbedVideoUrl`), konten teks multi-paragraf, serta mode pratinjau bagi pengajar pemilik dan Admin.
-- **Pelacakan Progres (Mark as Done)**: Menandai atau membatalkan status selesai materi dalam **transaksi SQL** (`POST /api/progress/toggle`) sekaligus menghitung ulang persentase penyelesaian secara dinamis.
+- **Enrollment Berbasis Jadwal & Ruang Belajar (`/learn/[course]/[materi]`)**: Student dapat mendaftar ke course *published* (`POST /api/enrollments`) apabila jadwal kelas sudah dibuka (`start_date` sudah tercapai dan belum melewati `end_date` berdasarkan zona waktu `Asia/Jakarta`, atau tanpa batas waktu/*Lifetime Access*). Ruang belajar menyediakan navigasi materi sebelumnya/berikutnya, pemutar video embed YouTube/Vimeo (`toEmbedVideoUrl`), konten teks multi-paragraf, serta mode pratinjau bagi pengajar pemilik dan Admin.
+- **Pelacakan Progres (Mark as Done Permanen)**: Menandai materi selesai dalam **transaksi SQL** (`POST /api/progress/toggle`) sekaligus menghitung ulang persentase penyelesaian secara dinamis. Materi yang sudah ditandai selesai terkunci dan **tidak dapat dibatalkan** baik dari antarmuka maupun API.
 - **Forum Diskusi Materi**: Tanya-jawab khusus peserta terdaftar, pengajar pemilik course, dan Admin (`GET/POST /api/materials/[id]/discussions`) dengan struktur pertanyaan induk dan balasan satu tingkat (`parent_id`).
 
-### 4. 🏅 Sertifikat Digital & Cetak PDF
+### 4. 🏅 Finalisasi Course, Sertifikat Digital & Cetak PDF
 
-- **Penerbitan Otomatis**: Saat progres mencapai 100%, transaksi SQL memperbarui status enrollment menjadi `completed` dan menerbitkan kode verifikasi unik berformat `ACAD-YYYY-XXXXXX`.
+- **Finalisasi Course & Penerbitan Sertifikat Otomatis**: Sertifikat hanya diterbitkan untuk course yang sudah **difinalisasi** (`finalized_at`). Jika Student menyelesaikan 100% materi sebelum course final, status enrollment menjadi `completed` dengan keterangan *Menunggu Finalisasi Pengajar*. Saat Teacher atau Admin menekan **Finalisasi Course**, sistem menjalankan transaksi SQL atomik untuk mengunci seluruh materi secara permanen, menerbitkan kode sertifikat unik (`ACAD-YYYY-XXXXXX`) bagi seluruh siswa yang sudah 100%, dan mengirim notifikasi in-app. Setelah course final, siswa yang mencapai 100% langsung memperoleh sertifikat otomatis.
 - **Daftar & Verifikasi Publik**: Student melihat koleksinya di `/certificates`, sedangkan publik maupun API (`GET /api/certificates/[code]`) dapat memverifikasi dan mencetak sertifikat di `/certificates/[code]` dengan tata letak cetak **A4 lanskap** (297mm x 209.5mm).
 
 ### 5. 👤 Profil, Pengajuan Teacher, Notifikasi & Storage Lokal
 
-- **Pengaturan Profil (`/profile`)**: Pembaruan nama, bio, kata sandi, dan foto profil (`PUT /api/profile` via `multipart/form-data` atau JSON).
-- **Pengajuan Teacher & Notifikasi**: Student dapat mengajukan atau mengajukan ulang peran Teacher (`/api/teacher-applications`) dan memantau notifikasi melalui ikon lonceng pada Navbar (`/api/notifications`, `/api/notifications/read`).
-- **Penyimpanan Gambar Lokal**: Avatar (maks 2 MB) disimpan di `storage/uploads/avatars/` dan sampul course (maks 5 MB) di `storage/uploads/courses/` setelah validasi *magic bytes* (JPEG/PNG/WebP, menolak SVG), lalu disajikan melalui `/api/uploads/avatars/[filename]` dan `/api/uploads/courses/[filename]`.
+- **Pengaturan Profil (`/profile`)**: Pembaruan nama, bio, kata sandi (dengan toggle *show/hide password*), dan foto profil (`PUT /api/profile` via `multipart/form-data` atau JSON). Jika akun pernah mendaftar sebagai Teacher, profil menampilkan riwayat pengajuan secara *read-only* beserta tautan CV yang diunggah.
+- **Pengajuan Teacher & Notifikasi**: Pengajuan Teacher baru hanya dilakukan melalui menu **Daftar Teacher** (`/register?type=teacher`) dengan unggahan **CV PDF wajib** (`TeacherCvUploadField`). Pelamar yang ditolak dapat mengajukan ulang (*Ajukan Ulang*) dari Dashboard Student (`/api/teacher-applications`) dengan CV PDF wajib. Seluruh pengguna dapat memantau notifikasi melalui ikon lonceng pada Navbar (`/api/notifications`, `/api/notifications/read`).
+- **Penyimpanan File Lokal**: Avatar (maks 2 MB) di `storage/uploads/avatars/`, sampul course (maks 5 MB) di `storage/uploads/courses/` (validasi *magic bytes* JPEG/PNG/WebP, menolak SVG), serta **CV pelamar Teacher** (PDF maks 5 MB, validasi *magic bytes* `%PDF-`) di `storage/uploads/cv/`. File disajikan melalui `/api/uploads/avatars/[filename]`, `/api/uploads/courses/[filename]`, dan endpoint privat `/api/uploads/cv/[filename]` (hanya dapat diakses oleh Admin atau pemilik pengajuan).
 
 ### 6. 🧑‍🏫 Panel Pengajar (`/teacher`) & 🛡️ Panel Admin (`/admin`)
 
-- **Teacher Panel**: Ringkasan metrik mengajar, pembuatan dan penyuntingan course beserta upload foto sampul (`FormData`), toggle *published/draft* (syarat minimal 1 materi), manajemen materi CRUD dan pengurutan ulang atomik (memanfaatkan constraint `DEFERRABLE INITIALLY DEFERRED`), serta pemantauan progres siswa (`/teacher/students`).
-- **Admin Panel**: Statistik platform (`GET /api/admin/stats`), peninjauan pengajuan Teacher (approve/reject dengan promosi peran dan notifikasi transaksional), CRUD kategori (dilindungi `ON DELETE RESTRICT`), moderasi status/materi/hapus course, serta pengelolaan akun pengguna (mencegah penghapusan akun sendiri).
+- **Teacher Panel**: Ringkasan metrik mengajar, pembuatan dan penyuntingan course beserta jadwal tanggal (`start_date`–`end_date`) dan upload foto sampul (`FormData`), toggle *published/draft* (syarat minimal 1 materi), manajemen materi CRUD dan pengurutan ulang atomik (memanfaatkan constraint `DEFERRABLE INITIALLY DEFERRED`), **Finalisasi Course** (mengunci permanen materi serta status publikasi), dan pemantauan progres siswa (`/teacher/students`).
+- **Admin Panel**: Statistik platform (`GET /api/admin/stats`), peninjauan pengajuan Teacher beserta tautan **Lihat CV Pelamar (PDF)** dan portofolio (approve/reject dengan promosi peran dan notifikasi transaksional), CRUD kategori (dilindungi `ON DELETE RESTRICT`), pembuatan/penyuntingan course (`/admin/courses/new`, `/admin/courses/[id]/edit`), moderasi status *published/draft*, **Finalisasi Course**, penghapusan course berproteksi, serta pengelolaan pengguna (`/admin/users`) dengan pencarian, filter peran/pelamar pending, paginasi, dan modal tambah/edit akun.
 
 ### 7. ♿ Aksesibilitas & UI
 
-- Pengaturan ukuran teks dinamis **A− / A+** (Normal 100%, Besar 112.5%, Ekstra Besar 125%) yang tersimpan di `localStorage` (`FontSizeContext` & `FontSizeControl`).
-- Dukungan `@media (prefers-reduced-motion: reduce)`, navigasi `:focus-visible`, sistem toast notifikasi (`ToastContext`), serta `Modal` / `ConfirmModal` dengan penutupan via tombol `Escape` maupun backdrop.
+- Provider skala ukuran teks (`FontSizeProvider` / `FontSizeContext`), input kata sandi aksesibel (`PasswordField` dengan `aria-pressed` & `aria-label`), serta komponen upload dokumen (`TeacherCvUploadField`).
+- Dukungan `@media (prefers-reduced-motion: reduce)`, navigasi `:focus-visible`, gaya dialog native (`dialog:modal` & `dialog::backdrop`), sistem toast notifikasi (`ToastContext`), serta `Modal` / `ConfirmModal` dengan penutupan via tombol `Escape` maupun backdrop.
 
 ---
 
@@ -106,7 +106,7 @@ flowchart LR
     P --> L["📦 src/lib<br/>db, auth, session, validators, queries"]
     A --> L
     L --> D[("🐘 PostgreSQL<br/>pool maks 20")]
-    A --> S["🗂️ storage/uploads<br/>avatars & courses"]
+    A --> S["🗂️ storage/uploads<br/>avatars, courses & cv"]
 ```
 
 ---
@@ -118,7 +118,9 @@ Skema didefinisikan di `db/schema.sql` (**12 tabel & 11 indeks**) dengan seed de
 | Aspek | Implementasi |
 | --- | --- |
 | Query | Raw SQL terparameter melalui `pg` (connection pool maks 20) |
-| Konsistensi data | Progres materi dan penerbitan sertifikat dijalankan dalam transaksi SQL |
+| Konsistensi data | Progres materi, finalisasi course, dan penerbitan sertifikat dijalankan dalam transaksi SQL |
+| Jadwal & finalisasi course | Kolom `start_date`, `end_date` (`CHECK end_date >= start_date`), dan `finalized_at` pada `courses` |
+| Lampiran pelamar Teacher | Kolom `cv_url` pada tabel `teacher_applications` untuk file CV PDF |
 | Urutan materi | Pengurutan ulang atomik dengan constraint `DEFERRABLE INITIALLY DEFERRED` |
 | Integritas kategori | Relasi kategori dilindungi `ON DELETE RESTRICT` |
 | Forum diskusi | Struktur induk-balasan satu tingkat melalui kolom `parent_id` |
@@ -140,18 +142,18 @@ Skema didefinisikan di `db/schema.sql` (**12 tabel & 11 indeks**) dengan seed de
 │   ├── logo.png                    # Logo Academyya (navbar, footer, sertifikat)
 │   └── Object.svg                  # Ilustrasi utama Hero Section
 ├── src/
-│   ├── middleware.js               # Guard sesi JWT Edge-safe & redirect halaman auth
+│   ├── middleware.js               # Guard sesi JWT Edge-safe & redirect berbasis peran
 │   ├── app/
-│   │   ├── globals.css             # Token @theme Tailwind v4, animasi Hero, aturan print A4
+│   │   ├── globals.css             # Token @theme Tailwind v4, animasi Hero, gaya dialog, aturan print A4
 │   │   ├── layout.js               # Root layout (Poppins, Inter, FontSizeProvider, ToastProvider)
 │   │   ├── (public)/               # /, /courses, /courses/[slug], /certificates/[code], /login, /register
 │   │   ├── (student)/              # /dashboard, /certificates, /profile, /learn/[course]/[materi]
-│   │   ├── (teacher)/teacher/      # Teacher Panel: ringkasan, kelola course, materi, progres siswa
-│   │   ├── (admin)/admin/          # Admin Panel: statistik, verifikasi teacher, kategori, moderasi, pengguna
-│   │   └── api/                    # 30 Route Handler API
+│   │   ├── (teacher)/teacher/      # Teacher Panel: ringkasan, kelola & finalisasi course, materi, progres siswa
+│   │   ├── (admin)/admin/          # Admin Panel: statistik, verifikasi teacher, kategori, kelola & moderasi course, pengguna
+│   │   └── api/                    # 32 Route Handler API
 │   ├── components/                 # Komponen UI per domain (admin, auth, course, home, layout, learning, student, teacher, ui)
-│   └── lib/                        # Helper inti (db, auth, session, validators, uploadStorage, queries/*)
-├── storage/                        # Unggahan runtime (diabaikan di .gitignore)
+│   └── lib/                        # Helper inti (db, auth, session, validators, courseMutations, uploadStorage, teacherCvStorage, queries/*)
+├── storage/                        # Unggahan runtime: avatars, courses, cv (diabaikan di .gitignore)
 ├── .env.example                    # Contoh daftar nama variabel environment
 ├── eslint.config.mjs               # Konfigurasi ESLint
 ├── jsconfig.json                   # Alias path @/*
@@ -167,16 +169,20 @@ Autentikasi memakai sesi JWT pada HTTP-only cookie `academyya_session`. Contoh b
 
 | Endpoint | Method | Akses | Deskripsi |
 | --- | --- | --- | --- |
-| `/api/auth/register` | POST | Publik | Mendaftarkan Student atau calon Teacher (bcrypt hashed) |
+| `/api/auth/register` | POST | Publik | Mendaftarkan Student atau calon Teacher (`multipart/form-data` wajib CV PDF untuk Teacher, konfirmasi kata sandi, bcrypt) |
 | `/api/auth/login` | POST | Publik | Login dan menerbitkan cookie sesi JWT |
 | `/api/auth/me` | GET | Login | Sinkronisasi data & peran pengguna aktif |
 | `/api/courses` | GET | Publik | Katalog course: pencarian, filter, sort, paginasi |
-| `/api/enrollments` | POST | Student | Mendaftar ke course berstatus published |
-| `/api/progress/toggle` | POST | Student | Menandai/membatalkan materi selesai (transaksi SQL) |
+| `/api/enrollments` | POST | Student | Mendaftar ke course *published* yang sudah masuk rentang jadwal |
+| `/api/progress/toggle` | POST | Student | Menandai materi selesai secara permanen (transaksi SQL) & menerbitkan sertifikat jika course sudah final |
 | `/api/materials/[id]/discussions` | GET, POST | Peserta, Teacher pemilik, Admin | Forum diskusi materi |
 | `/api/certificates/[code]` | GET | Publik | Verifikasi sertifikat digital |
 | `/api/profile` | PUT | Login | Update profil & foto (multipart/JSON) |
-| `/api/teacher-applications` | GET, POST | Student | Pengajuan peran Teacher |
+| `/api/teacher-applications` | GET, POST | Student | Riwayat pengajuan & pengajuan ulang (CV PDF wajib) bagi pelamar Teacher yang ditolak |
+| `/api/teacher/courses/[id]` | GET, PUT, PATCH, DELETE | Teacher pemilik | Kelola detail course, toggle *draft/published*, finalisasi course (`action: "finalize"`), & hapus course |
+| `/api/admin/courses/[id]` | GET, PUT, PATCH, DELETE | Admin | Moderasi, edit, finalisasi (`action: "finalize"`), & hapus course |
+| `/api/admin/users` | GET, POST | Admin | Daftar pengguna (pencarian, filter, paginasi) & tambah akun pengguna |
+| `/api/uploads/cv/[filename]` | GET | Admin / Pemilik | Mengakses dokumen CV PDF pelamar Teacher secara privat |
 | `/api/notifications` | GET | Login | Histori notifikasi pengguna |
 | `/api/admin/stats` | GET | Admin | Statistik platform |
 
