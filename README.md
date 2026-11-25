@@ -2,7 +2,6 @@
 
 **Academyya: Learn Skills. Build Your Future.** adalah aplikasi *Learning Management System* (LMS) berbasis web yang dibangun dengan **Next.js (App Router)** dan **PostgreSQL** (`pg`, *raw SQL* terparameter tanpa ORM). Aplikasi ini mendukung pembelajaran terstruktur untuk tiga peran pengguna (**Student**, **Teacher**, dan **Admin**) lengkap dengan pelacakan progres materi, forum diskusi, notifikasi *in-app*, serta penerbitan dan verifikasi sertifikat digital.
 
-> Identitas paket pada `package.json`: `pertemuan-8` (`v0.1.0`).
 
 ---
 

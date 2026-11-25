@@ -83,6 +83,16 @@
     outline: 2px solid var(--color-primary-hover);
     outline-offset: 2px;
   }
+
+  dialog:modal {
+    overscroll-behavior: contain;
+  }
+
+  dialog::backdrop {
+    background: rgb(15 23 42 / 0.5);
+    overflow: hidden;
+    overscroll-behavior: contain;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
