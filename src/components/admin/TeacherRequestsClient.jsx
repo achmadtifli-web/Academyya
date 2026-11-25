@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar, CheckCircle2, ExternalLink, UserCheck, XCircle } from 'lucide-react';
+import { Calendar, CheckCircle2, ExternalLink, FileText, UserCheck, XCircle } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -154,7 +154,21 @@ export function TeacherRequestsClient({ initialRequests = [] }) {
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
-                <div>
+                <div className="flex flex-wrap items-center gap-4">
+                  {req.cv_url ? (
+                    <a
+                      href={req.cv_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-h-11 px-4 rounded-full bg-primary-light/70 border border-primary/25 inline-flex items-center gap-2 text-sm font-semibold text-primary-dark hover:bg-primary-light transition"
+                    >
+                      <FileText className="w-4 h-4" aria-hidden="true" />
+                      <span>Lihat CV Pelamar (PDF)</span>
+                    </a>
+                  ) : (
+                    <span className="text-sm text-muted">Tidak menyertakan file CV.</span>
+                  )}
+
                   {req.portfolio_url ? (
                     <a
                       href={req.portfolio_url}

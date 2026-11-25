@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { requireApiAuth, requireApiRole } from '@/lib/auth';
 import { createTeacherApplication, getUserTeacherApplications } from '@/lib/queries/users';
-import { isValidHttpUrl } from '@/lib/validators';
+import { parseTeacherRequestPayload } from '@/lib/teacherApplicationRequest';
+import { deleteStoredTeacherCvByUrl, saveTeacherCvFile } from '@/lib/teacherCvStorage';
+import { validateTeacherApplicationPayload } from '@/lib/validators';
 
 export async function GET() {
   const { user, errorResponse } = await requireApiAuth();
@@ -22,21 +24,26 @@ export async function POST(request) {
   const { user, errorResponse } = await requireApiRole(['student']);
   if (errorResponse) return errorResponse;
 
-  try {
-    const body = await request.json().catch(() => null);
-    const expertise = String(body?.expertise || '').trim();
-    const motivation = String(body?.motivation || '').trim();
-    const portfolioUrl = String(body?.portfolio_url || '').trim();
-    const fieldErrors = {};
+  let uploadedCvUrl = null;
 
-    if (expertise.length < 3 || expertise.length > 150) {
-      fieldErrors.expertise = 'Bidang keahlian minimal 3 karakter.';
+  try {
+    const parsed = await parseTeacherRequestPayload(request);
+    if (!parsed.ok) {
+      return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
     }
-    if (motivation.length < 10) {
-      fieldErrors.motivation = 'Motivasi mengajar minimal 10 karakter.';
-    }
-    if (portfolioUrl && !isValidHttpUrl(portfolioUrl)) {
-      fieldErrors.portfolio_url = 'URL portofolio harus diawali http:// atau https://.';
+
+    const validation = validateTeacherApplicationPayload(parsed.body);
+    const fieldErrors = { ...validation.fieldErrors };
+
+    if (!parsed.cvFile) {
+      fieldErrors.cv = 'Unggah file CV dalam format PDF (wajib).';
+    } else if (Object.keys(fieldErrors).length === 0) {
+      const cvRes = await saveTeacherCvFile(parsed.cvFile, `user-${user.id}`);
+      if (cvRes.error) {
+        fieldErrors.cv = cvRes.error;
+      } else {
+        uploadedCvUrl = cvRes.cvUrl;
+      }
     }
 
     if (Object.keys(fieldErrors).length > 0) {
@@ -48,9 +55,10 @@ export async function POST(request) {
 
     const application = await createTeacherApplication({
       userId: user.id,
-      expertise,
-      motivation,
-      portfolioUrl: portfolioUrl || null,
+      expertise: validation.data.expertise,
+      motivation: validation.data.motivation,
+      portfolioUrl: validation.data.portfolio_url,
+      cvUrl: uploadedCvUrl,
     });
 
     return NextResponse.json(
@@ -62,6 +70,18 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (err) {
+    if (uploadedCvUrl) {
+      await deleteStoredTeacherCvByUrl(uploadedCvUrl);
+    }
+    if (err.code === 'REGISTRATION_ONLY') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Pengajuan Teacher hanya dapat dilakukan melalui halaman Daftar Teacher.',
+        },
+        { status: 403 }
+      );
+    }
     if (err.code === 'ALREADY_PENDING') {
       return NextResponse.json(
         {
